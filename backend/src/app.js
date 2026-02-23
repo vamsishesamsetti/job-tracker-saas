@@ -8,13 +8,11 @@ import { notFoundHandler } from "./middleware/notFound.middleware.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 import healthRoutes from "./routes/health.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 
-/* =========================
-   Security Middleware
-========================= */
-
+/* Security */
 app.use(helmet());
 
 app.use(
@@ -26,28 +24,17 @@ app.use(
 
 app.use(apiLimiter);
 
-/* =========================
-   Logging
-========================= */
-
+/* Logging */
 app.use(morgan("dev"));
 
-/* =========================
-   Body Parsing
-========================= */
-
+/* Body Parser */
 app.use(express.json());
 
-/* =========================
-   Routes
-========================= */
-
+/* Routes */
 app.use("/api/v1", healthRoutes);
+app.use("/api/v1/auth", authRoutes);
 
-/* =========================
-   404 + Errors
-========================= */
-
+/* Error Handling */
 app.use(notFoundHandler);
 app.use(errorHandler);
 
