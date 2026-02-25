@@ -3,6 +3,7 @@ import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
 import userRoutes from "./routes/user.routes.js";
+ import jobRoutes from "./routes/job.routes.js";
 
 import { apiLimiter } from "./middleware/rateLimit.middleware.js";
 import { notFoundHandler } from "./middleware/notFound.middleware.js";
@@ -35,6 +36,7 @@ app.use(express.json());
 app.use("/api/v1", healthRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/jobs", jobRoutes);
 
 /* Error Handling */
 app.use(notFoundHandler);
