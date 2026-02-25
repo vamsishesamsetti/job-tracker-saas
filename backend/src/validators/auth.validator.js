@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 /*
-  Converts undefined/null → ""
-  and applies validation rules safely
+  Helper:
+  convert undefined/null -> ""
+  so required messages are stable
 */
 const requiredString = (fieldName, minLength = 1) =>
   z.preprocess(
@@ -11,11 +12,14 @@ const requiredString = (fieldName, minLength = 1) =>
       .string()
       .trim()
       .min(1, `${fieldName} is required`)
-      .min(minLength, `${fieldName} must be at least ${minLength} characters`)
+      .min(
+        minLength,
+        `${fieldName} must be at least ${minLength} characters`
+      )
   );
 
 /* =========================
-   Register Schema
+   REGISTER SCHEMA
 ========================= */
 
 export const registerSchema = z.object({
@@ -34,7 +38,7 @@ export const registerSchema = z.object({
 });
 
 /* =========================
-   Login Schema
+   LOGIN SCHEMA
 ========================= */
 
 export const loginSchema = z.object({

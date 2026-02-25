@@ -3,6 +3,10 @@ import { prisma } from "../config/prisma.js";
 import ApiError from "../utils/ApiError.js";
 import { generateAccessToken } from "../utils/jwt.js";
 
+/* =========================
+   REGISTER
+========================= */
+
 const register = async ({ name, email, password }) => {
   const existingUser = await prisma.user.findUnique({
     where: { email },
@@ -27,6 +31,34 @@ const register = async ({ name, email, password }) => {
   return { user, token };
 };
 
+/* =========================
+   LOGIN
+========================= */
+
+const login = async ({ email, password }) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new ApiError(401, "Invalid credentials");
+  }
+
+  const isPasswordValid = await bcrypt.compare(
+    password,
+    user.passwordHash
+  );
+
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid credentials");
+  }
+
+  const token = generateAccessToken(user);
+
+  return { user, token };
+};
+
 export default {
   register,
+  login,
 };
