@@ -29,11 +29,22 @@ const createJob = async (userId, data) => {
 };
 
 /* =========================
-   GET JOBS (FILTERED)
+   GET JOBS WITH PAGINATION
 ========================= */
 
 const getJobs = async (userId, query) => {
-  const { search, status, priority } = query;
+  const {
+    search,
+    status,
+    priority,
+    page = 1,
+    limit = 10,
+  } = query;
+
+  const pageNumber = Number(page);
+  const limitNumber = Number(limit);
+
+  const skip = (pageNumber - 1) * limitNumber;
 
   const where = {
     userId,
@@ -65,14 +76,26 @@ const getJobs = async (userId, query) => {
     ];
   }
 
-  const jobs = await prisma.job.findMany({
-    where,
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const [jobs, total] = await Promise.all([
+    prisma.job.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limitNumber,
+    }),
 
-  return jobs;
+    prisma.job.count({ where }),
+  ]);
+
+  return {
+    jobs,
+    meta: {
+      total,
+      page: pageNumber,
+      limit: limitNumber,
+      totalPages: Math.ceil(total / limitNumber),
+    },
+  };
 };
 
 export default {
