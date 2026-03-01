@@ -5,9 +5,13 @@ import validate from "../middleware/validate.middleware.js";
 import {
   createJob,
   getJobs,
+  updateJob,
 } from "../controllers/job.controller.js";
 
-import { createJobSchema } from "../validators/job.validator.js";
+import {
+  createJobSchema,
+  updateJobSchema,
+} from "../validators/job.validator.js";
 
 const router = express.Router();
 
@@ -18,6 +22,13 @@ router.post(
   authMiddleware,
   validate(createJobSchema),
   createJob
+);
+
+router.patch(
+  "/:id",
+  authMiddleware,
+  validate(updateJobSchema),
+  updateJob
 );
 
 export default router;

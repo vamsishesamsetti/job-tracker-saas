@@ -21,3 +21,4 @@ export const createJobSchema = z.object({
 
   notes: z.string().optional(),
 });
+export const updateJobSchema = createJobSchema.partial();

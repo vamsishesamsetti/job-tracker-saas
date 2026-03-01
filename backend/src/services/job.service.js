@@ -1,4 +1,5 @@
 import { prisma } from "../config/prisma.js";
+import ApiError from "../utils/ApiError.js";
 
 /* =========================
    CREATE JOB
@@ -10,9 +11,7 @@ const createJob = async (userId, data) => {
       ...data,
 
       user: {
-        connect: {
-          id: userId,
-        },
+        connect: { id: userId },
       },
 
       applicationDate: data.applicationDate
@@ -29,7 +28,7 @@ const createJob = async (userId, data) => {
 };
 
 /* =========================
-   GET JOBS WITH PAGINATION
+   GET JOBS
 ========================= */
 
 const getJobs = async (userId, query) => {
@@ -51,13 +50,8 @@ const getJobs = async (userId, query) => {
     isDeleted: false,
   };
 
-  if (status) {
-    where.status = status;
-  }
-
-  if (priority) {
-    where.priority = priority;
-  }
+  if (status) where.status = status;
+  if (priority) where.priority = priority;
 
   if (search) {
     where.OR = [
@@ -98,7 +92,41 @@ const getJobs = async (userId, query) => {
   };
 };
 
+/* =========================
+   UPDATE JOB
+========================= */
+
+const updateJob = async (userId, jobId, data) => {
+  const existingJob = await prisma.job.findFirst({
+    where: {
+      id: jobId,
+      userId,
+      isDeleted: false,
+    },
+  });
+
+  if (!existingJob) {
+    throw new ApiError(404, "Job not found");
+  }
+
+  const updatedJob = await prisma.job.update({
+    where: { id: jobId },
+    data: {
+      ...data,
+      applicationDate: data.applicationDate
+        ? new Date(data.applicationDate)
+        : undefined,
+      interviewDate: data.interviewDate
+        ? new Date(data.interviewDate)
+        : undefined,
+    },
+  });
+
+  return updatedJob;
+};
+
 export default {
   createJob,
   getJobs,
+  updateJob,
 };
