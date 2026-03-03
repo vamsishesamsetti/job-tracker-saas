@@ -1,3 +1,5 @@
+// backend/src/services/job.service.js
+
 import { prisma } from "../config/prisma.js";
 import ApiError from "../utils/ApiError.js";
 
@@ -28,7 +30,7 @@ const createJob = async (userId, data) => {
 };
 
 /* =========================
-   GET JOBS
+   GET JOBS (FILTER + PAGINATION)
 ========================= */
 
 const getJobs = async (userId, query) => {
@@ -77,7 +79,6 @@ const getJobs = async (userId, query) => {
       skip,
       take: limitNumber,
     }),
-
     prisma.job.count({ where }),
   ]);
 
@@ -125,8 +126,36 @@ const updateJob = async (userId, jobId, data) => {
   return updatedJob;
 };
 
+/* =========================
+   DELETE JOB (SOFT DELETE)
+========================= */
+
+const deleteJob = async (userId, jobId) => {
+  const existingJob = await prisma.job.findFirst({
+    where: {
+      id: jobId,
+      userId,
+      isDeleted: false,
+    },
+  });
+
+  if (!existingJob) {
+    throw new ApiError(404, "Job not found");
+  }
+
+  const deletedJob = await prisma.job.update({
+    where: { id: jobId },
+    data: {
+      isDeleted: true,
+    },
+  });
+
+  return deletedJob;
+};
+
 export default {
   createJob,
   getJobs,
   updateJob,
+  deleteJob,
 };

@@ -1,3 +1,5 @@
+// backend/src/routes/job.routes.js
+
 import express from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
 import validate from "../middleware/validate.middleware.js";
@@ -6,6 +8,7 @@ import {
   createJob,
   getJobs,
   updateJob,
+  deleteJob,
 } from "../controllers/job.controller.js";
 
 import {
@@ -30,5 +33,7 @@ router.patch(
   validate(updateJobSchema),
   updateJob
 );
+
+router.delete("/:id", authMiddleware, deleteJob);
 
 export default router;
