@@ -5,6 +5,7 @@ import morgan from "morgan";
 import userRoutes from "./routes/user.routes.js";
 import jobRoutes from "./routes/job.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 import { apiLimiter } from "./middleware/rateLimit.middleware.js";
 import { notFoundHandler } from "./middleware/notFound.middleware.js";
@@ -39,6 +40,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/jobs", jobRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 /* Error Handling */
 app.use(notFoundHandler);
