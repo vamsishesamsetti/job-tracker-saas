@@ -1,13 +1,14 @@
-export const errorHandler = (err, req, res, next) => {
+// backend/src/middleware/error.middleware.js
+
+const errorMiddleware = (err, req, res, next) => {
   console.error("❌ Error:", err);
 
   const statusCode = err.statusCode || 500;
 
   res.status(statusCode).json({
     success: false,
-    message:
-      process.env.NODE_ENV === "production"
-        ? "Internal server error"
-        : err.message,
+    message: err.message || "Internal Server Error",
   });
 };
+
+export default errorMiddleware;

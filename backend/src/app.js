@@ -1,49 +1,70 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
-import morgan from "morgan";
-import userRoutes from "./routes/user.routes.js";
+import rateLimit from "express-rate-limit";
+
+import authRoutes from "./routes/auth.routes.js";
 import jobRoutes from "./routes/job.routes.js";
+import userRoutes from "./routes/user.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 
-import { apiLimiter } from "./middleware/rateLimit.middleware.js";
-import { notFoundHandler } from "./middleware/notFound.middleware.js";
-import { errorHandler } from "./middleware/error.middleware.js";
-
-import healthRoutes from "./routes/health.routes.js";
-import authRoutes from "./routes/auth.routes.js";
+import errorMiddleware from "./middleware/error.middleware.js";
 
 const app = express();
 
-/* Security */
+/* =========================
+   SECURITY MIDDLEWARE
+========================= */
+
 app.use(helmet());
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "*",
     credentials: true,
   })
 );
 
-app.use(apiLimiter);
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: "Too many requests, please try again later.",
+});
 
-/* Logging */
-app.use(morgan("dev"));
+app.use(limiter);
 
-/* Body Parser */
+/* =========================
+   BODY PARSER
+========================= */
+
 app.use(express.json());
 
-/* Routes */
-app.use("/api/v1", healthRoutes);
+/* =========================
+   ROUTES
+========================= */
+
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/jobs", jobRoutes);
+app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/admin", adminRoutes);
 
-/* Error Handling */
-app.use(notFoundHandler);
-app.use(errorHandler);
+/* =========================
+   HEALTH CHECK
+========================= */
+
+app.get("/health", (req, res) => {
+  res.json({
+    success: true,
+    message: "API is healthy 🚀",
+  });
+});
+
+/* =========================
+   GLOBAL ERROR HANDLER
+========================= */
+
+app.use(errorMiddleware);
 
 export default app;
