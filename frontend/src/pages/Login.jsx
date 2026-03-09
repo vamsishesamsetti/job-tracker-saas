@@ -1,17 +1,19 @@
 import { useState } from "react";
 import API from "../api/api";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     try {
       const res = await API.post("/auth/login", {
@@ -25,7 +27,9 @@ function Login() {
 
       navigate("/");
     } catch (err) {
-      alert(err.response?.data?.message || "Login failed");
+      setError(
+        err.response?.data?.message || "Login failed"
+      );
     }
   };
 
@@ -39,12 +43,18 @@ function Login() {
           Login
         </h2>
 
+        {error && (
+          <p className="text-red-500 mb-3">{error}</p>
+        )}
+
         <input
           type="email"
           placeholder="Email"
           className="w-full border p-2 mb-4 rounded"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) =>
+            setEmail(e.target.value)
+          }
         />
 
         <input
@@ -52,14 +62,24 @@ function Login() {
           placeholder="Password"
           className="w-full border p-2 mb-4 rounded"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) =>
+            setPassword(e.target.value)
+          }
         />
 
-        <button
-          className="w-full bg-blue-600 text-white p-2 rounded"
-        >
+        <button className="w-full bg-blue-600 text-white p-2 rounded">
           Login
         </button>
+
+        <p className="text-center mt-4 text-sm">
+          Don't have an account?{" "}
+          <Link
+            to="/register"
+            className="text-blue-600 font-semibold"
+          >
+            Register
+          </Link>
+        </p>
       </form>
     </div>
   );

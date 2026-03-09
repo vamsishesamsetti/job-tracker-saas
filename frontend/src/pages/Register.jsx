@@ -1,6 +1,6 @@
 import { useState } from "react";
 import API from "../api/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 function Register() {
   const navigate = useNavigate();
@@ -9,8 +9,20 @@ function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [error, setError] = useState("");
+
+  const passwordValid = password.length >= 6;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
+    if (!passwordValid) {
+      setError(
+        "Password must be at least 6 characters"
+      );
+      return;
+    }
 
     try {
       await API.post("/auth/register", {
@@ -23,7 +35,10 @@ function Register() {
 
       navigate("/login");
     } catch (err) {
-      alert(err.response?.data?.message || "Registration failed");
+      setError(
+        err.response?.data?.message ||
+          "Registration failed"
+      );
     }
   };
 
@@ -37,12 +52,18 @@ function Register() {
           Register
         </h2>
 
+        {error && (
+          <p className="text-red-500 mb-3">{error}</p>
+        )}
+
         <input
           type="text"
           placeholder="Name"
           className="w-full border p-2 mb-4 rounded"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) =>
+            setName(e.target.value)
+          }
         />
 
         <input
@@ -50,22 +71,44 @@ function Register() {
           placeholder="Email"
           className="w-full border p-2 mb-4 rounded"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) =>
+            setEmail(e.target.value)
+          }
         />
 
         <input
           type="password"
           placeholder="Password"
-          className="w-full border p-2 mb-4 rounded"
+          className="w-full border p-2 mb-2 rounded"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) =>
+            setPassword(e.target.value)
+          }
         />
 
-        <button
-          className="w-full bg-green-600 text-white p-2 rounded"
+        <p
+          className={`text-sm mb-3 ${
+            passwordValid
+              ? "text-green-600"
+              : "text-gray-500"
+          }`}
         >
+          Password must be at least 6 characters
+        </p>
+
+        <button className="w-full bg-green-600 text-white p-2 rounded">
           Register
         </button>
+
+        <p className="text-center mt-4 text-sm">
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="text-blue-600 font-semibold"
+          >
+            Login
+          </Link>
+        </p>
       </form>
     </div>
   );
