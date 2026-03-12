@@ -1,7 +1,9 @@
 function JobTable({ jobs }) {
   return (
     <div className="bg-white shadow rounded-lg mt-6">
+
       <table className="w-full text-left">
+
         <thead className="border-b">
           <tr>
             <th className="p-3">Company</th>
@@ -13,10 +15,8 @@ function JobTable({ jobs }) {
 
         <tbody>
           {jobs.map((job) => (
-            <tr
-              key={job.id}
-              className="border-b"
-            >
+            <tr key={job.id} className="border-b">
+
               <td className="p-3">
                 {job.companyName}
               </td>
@@ -32,10 +32,13 @@ function JobTable({ jobs }) {
               <td className="p-3">
                 {job.priority}
               </td>
+
             </tr>
           ))}
         </tbody>
+
       </table>
+
     </div>
   );
 }
