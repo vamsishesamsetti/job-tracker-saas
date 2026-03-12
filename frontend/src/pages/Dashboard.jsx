@@ -10,7 +10,6 @@ function Dashboard() {
 
   const [stats, setStats] = useState(null);
   const [jobs, setJobs] = useState([]);
-
   const [showModal, setShowModal] = useState(false);
 
   const fetchData = async () => {
@@ -30,6 +29,24 @@ function Dashboard() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const deleteJob = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this job?"
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await API.delete(`/jobs/${id}`);
+      fetchData();
+    } catch (err) {
+      alert(
+        err.response?.data?.message ||
+        "Failed to delete job"
+      );
+    }
+  };
 
   if (!stats) {
     return <p className="p-6">Loading...</p>;
@@ -85,7 +102,10 @@ function Dashboard() {
 
         {/* Jobs Table */}
 
-        <JobTable jobs={jobs} />
+        <JobTable
+          jobs={jobs}
+          onDelete={deleteJob}
+        />
 
 
         {/* Modal */}
