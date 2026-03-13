@@ -5,12 +5,15 @@ import Navbar from "../components/Navbar";
 import StatCard from "../components/StatCard";
 import JobTable from "../components/JobTable";
 import AddJobModal from "../components/AddJobModal";
+import EditJobModal from "../components/EditJobModal";
 
 function Dashboard() {
 
   const [stats, setStats] = useState(null);
   const [jobs, setJobs] = useState([]);
+
   const [showModal, setShowModal] = useState(false);
+  const [editingJob, setEditingJob] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -31,6 +34,7 @@ function Dashboard() {
   }, []);
 
   const deleteJob = async (id) => {
+
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this job?"
     );
@@ -41,10 +45,7 @@ function Dashboard() {
       await API.delete(`/jobs/${id}`);
       fetchData();
     } catch (err) {
-      alert(
-        err.response?.data?.message ||
-        "Failed to delete job"
-      );
+      alert("Failed to delete job");
     }
   };
 
@@ -85,7 +86,6 @@ function Dashboard() {
 
         </div>
 
-
         {/* Add Job Button */}
 
         <div className="flex justify-end mt-6">
@@ -99,20 +99,29 @@ function Dashboard() {
 
         </div>
 
-
-        {/* Jobs Table */}
+        {/* Job Table */}
 
         <JobTable
           jobs={jobs}
           onDelete={deleteJob}
+          onEdit={(job)=>setEditingJob(job)}
         />
 
-
-        {/* Modal */}
+        {/* Add Job Modal */}
 
         {showModal && (
           <AddJobModal
-            onClose={() => setShowModal(false)}
+            onClose={()=>setShowModal(false)}
+            refresh={fetchData}
+          />
+        )}
+
+        {/* Edit Job Modal */}
+
+        {editingJob && (
+          <EditJobModal
+            job={editingJob}
+            onClose={()=>setEditingJob(null)}
             refresh={fetchData}
           />
         )}
