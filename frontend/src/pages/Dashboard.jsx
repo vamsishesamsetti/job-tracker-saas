@@ -12,6 +12,10 @@ function Dashboard() {
   const [stats, setStats] = useState(null);
   const [jobs, setJobs] = useState([]);
 
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [priority, setPriority] = useState("");
+
   const [showModal, setShowModal] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
 
@@ -21,7 +25,14 @@ function Dashboard() {
       const statsRes = await API.get("/dashboard");
       setStats(statsRes.data.data);
 
-      const jobsRes = await API.get("/jobs");
+      const jobsRes = await API.get("/jobs", {
+        params: {
+          search,
+          status,
+          priority
+        }
+      });
+
       setJobs(jobsRes.data.data.jobs);
 
     } catch (err) {
@@ -31,7 +42,7 @@ function Dashboard() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [search, status, priority]);
 
   const deleteJob = async (id) => {
 
@@ -86,12 +97,50 @@ function Dashboard() {
 
         </div>
 
+
+        {/* Search + Filters */}
+
+        <div className="flex gap-4 mt-6">
+
+          <input
+            className="border p-2 rounded w-64"
+            placeholder="Search company or role"
+            value={search}
+            onChange={(e)=>setSearch(e.target.value)}
+          />
+
+          <select
+            className="border p-2 rounded"
+            value={status}
+            onChange={(e)=>setStatus(e.target.value)}
+          >
+            <option value="">All Status</option>
+            <option value="APPLIED">Applied</option>
+            <option value="INTERVIEW">Interview</option>
+            <option value="OFFER">Offer</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+
+          <select
+            className="border p-2 rounded"
+            value={priority}
+            onChange={(e)=>setPriority(e.target.value)}
+          >
+            <option value="">All Priority</option>
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+          </select>
+
+        </div>
+
+
         {/* Add Job Button */}
 
         <div className="flex justify-end mt-6">
 
           <button
-            onClick={() => setShowModal(true)}
+            onClick={()=>setShowModal(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded"
           >
             + Add Job
@@ -99,13 +148,15 @@ function Dashboard() {
 
         </div>
 
-        {/* Job Table */}
+
+        {/* Jobs Table */}
 
         <JobTable
           jobs={jobs}
           onDelete={deleteJob}
           onEdit={(job)=>setEditingJob(job)}
         />
+
 
         {/* Add Job Modal */}
 
@@ -115,6 +166,7 @@ function Dashboard() {
             refresh={fetchData}
           />
         )}
+
 
         {/* Edit Job Modal */}
 
