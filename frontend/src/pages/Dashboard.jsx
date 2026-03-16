@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api/api";
 
-import Navbar from "../components/Navbar";
+import Layout from "../components/Layout";
 import StatCard from "../components/StatCard";
 import JobTable from "../components/JobTable";
 import AddJobModal from "../components/AddJobModal";
@@ -26,11 +26,7 @@ function Dashboard() {
       setStats(statsRes.data.data);
 
       const jobsRes = await API.get("/jobs", {
-        params: {
-          search,
-          status,
-          priority
-        }
+        params: { search, status, priority }
       });
 
       setJobs(jobsRes.data.data.jobs);
@@ -47,7 +43,7 @@ function Dashboard() {
   const deleteJob = async (id) => {
 
     const confirmDelete = window.confirm(
-      "Are you sure you want to delete this job?"
+      "Delete this job?"
     );
 
     if (!confirmDelete) return;
@@ -55,8 +51,8 @@ function Dashboard() {
     try {
       await API.delete(`/jobs/${id}`);
       fetchData();
-    } catch (err) {
-      alert("Failed to delete job");
+    } catch {
+      alert("Delete failed");
     }
   };
 
@@ -65,13 +61,11 @@ function Dashboard() {
   }
 
   return (
-    <div>
-
-      <Navbar />
+    <Layout>
 
       <div className="p-6">
 
-        {/* Dashboard Cards */}
+        {/* Stats */}
 
         <div className="grid grid-cols-4 gap-4">
 
@@ -98,13 +92,13 @@ function Dashboard() {
         </div>
 
 
-        {/* Search + Filters */}
+        {/* Filters */}
 
         <div className="flex gap-4 mt-6">
 
           <input
             className="border p-2 rounded w-64"
-            placeholder="Search company or role"
+            placeholder="Search jobs"
             value={search}
             onChange={(e)=>setSearch(e.target.value)}
           />
@@ -135,7 +129,7 @@ function Dashboard() {
         </div>
 
 
-        {/* Add Job Button */}
+        {/* Add Job */}
 
         <div className="flex justify-end mt-6">
 
@@ -158,17 +152,12 @@ function Dashboard() {
         />
 
 
-        {/* Add Job Modal */}
-
         {showModal && (
           <AddJobModal
             onClose={()=>setShowModal(false)}
             refresh={fetchData}
           />
         )}
-
-
-        {/* Edit Job Modal */}
 
         {editingJob && (
           <EditJobModal
@@ -180,7 +169,7 @@ function Dashboard() {
 
       </div>
 
-    </div>
+    </Layout>
   );
 }
 

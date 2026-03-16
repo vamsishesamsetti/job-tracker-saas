@@ -26,7 +26,8 @@ function JobTable({ jobs, onDelete, onEdit }) {
         <tbody>
           {jobs.map((job) => (
 
-            <tr key={job.id} className="border-b">
+            <tr key={job.id} className="border-b hover:bg-gray-50">
+
 
               <td className="p-3">{job.companyName}</td>
 
