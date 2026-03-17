@@ -6,6 +6,7 @@ import StatCard from "../components/StatCard";
 import JobTable from "../components/JobTable";
 import AddJobModal from "../components/AddJobModal";
 import EditJobModal from "../components/EditJobModal";
+import StatusChart from "../components/StatusChart";
 
 function Dashboard() {
 
@@ -88,8 +89,10 @@ function Dashboard() {
             title="Rejections"
             value={stats.rejections}
           />
+          
 
         </div>
+        <StatusChart data={stats.statusBreakdown} />
 
 
         {/* Filters */}
