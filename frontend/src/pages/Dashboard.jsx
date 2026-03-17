@@ -20,18 +20,17 @@ function Dashboard() {
   const [showModal, setShowModal] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
 
+  // ✅ FETCH DATA
   const fetchData = async () => {
     try {
-
       const statsRes = await API.get("/dashboard");
       setStats(statsRes.data.data);
 
       const jobsRes = await API.get("/jobs", {
-        params: { search, status, priority }
+        params: { search, status, priority },
       });
 
       setJobs(jobsRes.data.data.jobs);
-
     } catch (err) {
       console.error(err);
     }
@@ -41,19 +40,36 @@ function Dashboard() {
     fetchData();
   }, [search, status, priority]);
 
+  // ✅ DELETE JOB
   const deleteJob = async (id) => {
-
-    const confirmDelete = window.confirm(
-      "Delete this job?"
-    );
-
-    if (!confirmDelete) return;
+    if (!window.confirm("Delete this job?")) return;
 
     try {
       await API.delete(`/jobs/${id}`);
       fetchData();
     } catch {
       alert("Delete failed");
+    }
+  };
+
+  // ✅ UPLOAD RESUME (IMPORTANT FIX)
+  const uploadResume = async (id, file) => {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      await API.post(`/jobs/${id}/upload`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed");
     }
   };
 
@@ -66,50 +82,30 @@ function Dashboard() {
 
       <div className="p-6">
 
-        {/* Stats */}
-
+        {/* Cards */}
         <div className="grid grid-cols-4 gap-4">
-
-          <StatCard
-            title="Total Applications"
-            value={stats.totalApplications}
-          />
-
-          <StatCard
-            title="Interviews"
-            value={stats.interviews}
-          />
-
-          <StatCard
-            title="Offers"
-            value={stats.offers}
-          />
-
-          <StatCard
-            title="Rejections"
-            value={stats.rejections}
-          />
-          
-
+          <StatCard title="Total Applications" value={stats.totalApplications} />
+          <StatCard title="Interviews" value={stats.interviews} />
+          <StatCard title="Offers" value={stats.offers} />
+          <StatCard title="Rejections" value={stats.rejections} />
         </div>
+
+        {/* Chart */}
         <StatusChart data={stats.statusBreakdown} />
 
-
         {/* Filters */}
-
         <div className="flex gap-4 mt-6">
-
           <input
             className="border p-2 rounded w-64"
             placeholder="Search jobs"
             value={search}
-            onChange={(e)=>setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
 
           <select
             className="border p-2 rounded"
             value={status}
-            onChange={(e)=>setStatus(e.target.value)}
+            onChange={(e) => setStatus(e.target.value)}
           >
             <option value="">All Status</option>
             <option value="APPLIED">Applied</option>
@@ -121,43 +117,37 @@ function Dashboard() {
           <select
             className="border p-2 rounded"
             value={priority}
-            onChange={(e)=>setPriority(e.target.value)}
+            onChange={(e) => setPriority(e.target.value)}
           >
             <option value="">All Priority</option>
             <option value="LOW">Low</option>
             <option value="MEDIUM">Medium</option>
             <option value="HIGH">High</option>
           </select>
-
         </div>
 
-
         {/* Add Job */}
-
         <div className="flex justify-end mt-6">
-
           <button
-            onClick={()=>setShowModal(true)}
+            onClick={() => setShowModal(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded"
           >
             + Add Job
           </button>
-
         </div>
 
-
-        {/* Jobs Table */}
-
+        {/* Job Table */}
         <JobTable
           jobs={jobs}
           onDelete={deleteJob}
-          onEdit={(job)=>setEditingJob(job)}
+          onEdit={(job) => setEditingJob(job)}
+          onUpload={uploadResume}  
         />
 
-
+        {/* Modals */}
         {showModal && (
           <AddJobModal
-            onClose={()=>setShowModal(false)}
+            onClose={() => setShowModal(false)}
             refresh={fetchData}
           />
         )}
@@ -165,7 +155,7 @@ function Dashboard() {
         {editingJob && (
           <EditJobModal
             job={editingJob}
-            onClose={()=>setEditingJob(null)}
+            onClose={() => setEditingJob(null)}
             refresh={fetchData}
           />
         )}

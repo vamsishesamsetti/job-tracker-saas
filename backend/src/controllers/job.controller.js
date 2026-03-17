@@ -3,6 +3,8 @@
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import jobService from "../services/job.service.js";
+import cloudinary from "../config/cloudinary.js";
+import { prisma } from "../config/prisma.js";
 
 /* =========================
    CREATE JOB
@@ -60,4 +62,48 @@ export const deleteJob = asyncHandler(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(200, null, "Job deleted successfully")
   );
+});
+
+/* =========================
+   UPLOAD RESUME (FIXED)
+========================= */
+
+export const uploadResume = asyncHandler(async (req, res) => {
+
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({
+      success: false,
+      message: "No file uploaded",
+    });
+  }
+
+  // ✅ SAFE PROMISE WRAPPER
+  const uploadResult = await new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { resource_type: "raw" },
+      (error, result) => {
+        if (error) {
+          console.error("Cloudinary Error:", error);
+          return reject(error);
+        }
+        resolve(result);
+      }
+    );
+
+    stream.end(file.buffer);
+  });
+
+  const updatedJob = await prisma.job.update({
+    where: { id: req.params.id },
+    data: {
+      resumeUrl: uploadResult.secure_url,
+    },
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, updatedJob, "Resume uploaded successfully")
+  );
+
 });

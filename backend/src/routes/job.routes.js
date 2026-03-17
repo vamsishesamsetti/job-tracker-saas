@@ -36,4 +36,13 @@ router.patch(
 
 router.delete("/:id", authMiddleware, deleteJob);
 
+import upload from "../middleware/upload.middleware.js";
+import { uploadResume } from "../controllers/job.controller.js";
+
+router.post(
+  "/:id/upload",
+  upload.single("file"),
+  uploadResume
+);
+
 export default router;
