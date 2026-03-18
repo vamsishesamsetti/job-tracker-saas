@@ -9,6 +9,8 @@ import {
   getJobs,
   updateJob,
   deleteJob,
+  uploadResume,
+  sendInterviewReminder,
 } from "../controllers/job.controller.js";
 
 import {
@@ -44,5 +46,7 @@ router.post(
   upload.single("file"),
   uploadResume
 );
+
+router.post("/:id/send-reminder", sendInterviewReminder);
 
 export default router;

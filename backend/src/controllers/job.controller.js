@@ -5,6 +5,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import jobService from "../services/job.service.js";
 import cloudinary from "../config/cloudinary.js";
 import { prisma } from "../config/prisma.js";
+import emailService from "../services/email.service.js";
 
 /* =========================
    CREATE JOB
@@ -106,4 +107,28 @@ export const uploadResume = asyncHandler(async (req, res) => {
     new ApiResponse(200, updatedJob, "Resume uploaded successfully")
   );
 
+}); 
+
+export const sendInterviewReminder = asyncHandler(async (req, res) => {
+  const job = await jobService.getJobById(req.user.id, req.params.id);
+
+  if (!job) {
+    return res.status(404).json({
+      success: false,
+      message: "Job not found",
+    });
+  }
+
+  if (!job.interviewDate) {
+    return res.status(400).json({
+      success: false,
+      message: "This job has no interview date",
+    });
+  }
+
+  await emailService.sendInterviewReminder(req.user, job);
+
+  return res.status(200).json(
+    new ApiResponse(200, null, "Interview reminder sent successfully")
+  );
 });

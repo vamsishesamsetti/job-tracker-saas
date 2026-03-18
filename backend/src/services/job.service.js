@@ -153,9 +153,20 @@ const deleteJob = async (userId, jobId) => {
   return deletedJob;
 };
 
+const getJobById = async (userId, jobId) => {
+  return prisma.job.findFirst({
+    where: {
+      id: jobId,
+      userId,
+      isDeleted: false,
+    },
+  });
+};
+
 export default {
   createJob,
   getJobs,
   updateJob,
   deleteJob,
+  getJobById,
 };
