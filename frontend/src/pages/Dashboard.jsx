@@ -8,6 +8,7 @@ import AddJobModal from "../components/AddJobModal";
 import EditJobModal from "../components/EditJobModal";
 import StatusChart from "../components/StatusChart";
 import toast from "react-hot-toast";
+import KanbanBoard from "../components/KanbanBoard";
 
 function Dashboard() {
 
@@ -28,37 +29,37 @@ function Dashboard() {
   const [showModal, setShowModal] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
 
+  const [view, setView] = useState("table"); // ✅ NEW
+
   /* =========================
      FETCH DATA
   ========================= */
 
   const fetchData = async () => {
-  try {
-    const statsRes = await API.get("/dashboard");
-    setStats(statsRes.data.data);
+    try {
+      const statsRes = await API.get("/dashboard");
+      setStats(statsRes.data.data);
 
-    const jobsRes = await API.get("/jobs", {
-      params: { search, status, priority, page, limit: 5 },
-    });
+      const jobsRes = await API.get("/jobs", {
+        params: { search, status, priority, page, limit: 5 },
+      });
 
-    setJobs(jobsRes.data.data.jobs);
-    setTotalPages(jobsRes.data.data.pagination.totalPages);
+      setJobs(jobsRes.data.data.jobs);
+      setTotalPages(jobsRes.data.data.pagination.totalPages);
 
-  } catch {
-    toast.error("Failed to load data");
-  }
-};
+    } catch {
+      toast.error("Failed to load data");
+    }
+  };
 
   /* =========================
      EFFECTS
   ========================= */
 
-  // fetch when filters OR page changes
   useEffect(() => {
     fetchData();
   }, [search, status, priority, page]);
 
-  // reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [search, status, priority]);
@@ -67,40 +68,40 @@ function Dashboard() {
      DELETE JOB
   ========================= */
 
-const deleteJob = async (id) => {
-  if (!window.confirm("Delete this job?")) return;
+  const deleteJob = async (id) => {
+    if (!window.confirm("Delete this job?")) return;
 
-  try {
-    await API.delete(`/jobs/${id}`);
-    toast.success("Job deleted");
-    fetchData();
-  } catch {
-    toast.error("Delete failed");
-  }
-};
+    try {
+      await API.delete(`/jobs/${id}`);
+      toast.success("Job deleted");
+      fetchData();
+    } catch {
+      toast.error("Delete failed");
+    }
+  };
 
   /* =========================
      UPLOAD RESUME
   ========================= */
 
   const uploadResume = async (id, file) => {
-  if (!file) return;
+    if (!file) return;
 
-  const formData = new FormData();
-  formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
-  try {
-    await API.post(`/jobs/${id}/upload`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    try {
+      await API.post(`/jobs/${id}/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-    toast.success("Resume uploaded");
-    fetchData();
+      toast.success("Resume uploaded");
+      fetchData();
 
-  } catch {
-    toast.error("Upload failed");
-  }
-};
+    } catch {
+      toast.error("Upload failed");
+    }
+  };
 
   /* =========================
      LOADING
@@ -119,9 +120,7 @@ const deleteJob = async (id) => {
 
       <div className="p-6">
 
-        {/* =========================
-            STATS
-        ========================= */}
+        {/* STATS */}
         <div className="grid grid-cols-4 gap-4">
           <StatCard title="Total Applications" value={stats.totalApplications} />
           <StatCard title="Interviews" value={stats.interviews} />
@@ -129,14 +128,10 @@ const deleteJob = async (id) => {
           <StatCard title="Rejections" value={stats.rejections} />
         </div>
 
-        {/* =========================
-            CHART
-        ========================= */}
+        {/* CHART */}
         <StatusChart data={stats.statusBreakdown} />
 
-        {/* =========================
-            FILTERS
-        ========================= */}
+        {/* FILTERS */}
         <div className="flex gap-4 mt-6">
 
           <input
@@ -171,58 +166,85 @@ const deleteJob = async (id) => {
 
         </div>
 
-        {/* =========================
-            ADD JOB
-        ========================= */}
-        <div className="flex justify-end mt-6">
+        {/* ADD JOB */}
+        <div className="flex justify-between mt-6">
+
+          {/* VIEW SWITCH */}
+          <div className="flex gap-2">
+
+            <button
+              onClick={() => setView("table")}
+              className={`px-4 py-2 rounded ${
+                view === "table"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200"
+              }`}
+            >
+              Table View
+            </button>
+
+            <button
+              onClick={() => setView("kanban")}
+              className={`px-4 py-2 rounded ${
+                view === "kanban"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200"
+              }`}
+            >
+              Kanban View
+            </button>
+
+          </div>
+
           <button
             onClick={() => setShowModal(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded"
           >
             + Add Job
           </button>
-        </div>
-
-        {/* =========================
-            JOB TABLE
-        ========================= */}
-        <JobTable
-          jobs={jobs}
-          onDelete={deleteJob}
-          onEdit={(job) => setEditingJob(job)}
-          onUpload={uploadResume}
-        />
-
-        {/* =========================
-            PAGINATION
-        ========================= */}
-        <div className="flex justify-center items-center gap-4 mt-6">
-
-          <button
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
-            className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
-          >
-            Prev
-          </button>
-
-          <span className="font-medium">
-            Page {page} of {totalPages}
-          </span>
-
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage(page + 1)}
-            className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
-          >
-            Next
-          </button>
 
         </div>
 
-        {/* =========================
-            MODALS
-        ========================= */}
+        {/* TABLE OR KANBAN */}
+        {view === "table" ? (
+          <JobTable
+            jobs={jobs}
+            onDelete={deleteJob}
+            onEdit={(job) => setEditingJob(job)}
+            onUpload={uploadResume}
+          />
+        ) : (
+          <KanbanBoard jobs={jobs} refresh={fetchData} />
+        )}
+
+        {/* PAGINATION */}
+        {view === "table" && (
+          <div className="flex justify-center items-center gap-4 mt-6">
+
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+              className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+            >
+              Prev
+            </button>
+
+            <span className="font-medium">
+              Page {page} of {totalPages}
+            </span>
+
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage(page + 1)}
+              className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+            >
+              Next
+            </button>
+
+          </div>
+        )}
+
+        {/* MODALS */}
         {showModal && (
           <AddJobModal
             onClose={() => setShowModal(false)}
