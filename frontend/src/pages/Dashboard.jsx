@@ -10,6 +10,13 @@ import StatusChart from "../components/StatusChart";
 
 function Dashboard() {
 
+  /* =========================
+     STATES
+  ========================= */
+
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const [stats, setStats] = useState(null);
   const [jobs, setJobs] = useState([]);
 
@@ -20,27 +27,53 @@ function Dashboard() {
   const [showModal, setShowModal] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
 
-  // ✅ FETCH DATA
+  /* =========================
+     FETCH DATA
+  ========================= */
+
   const fetchData = async () => {
     try {
+      // Dashboard stats
       const statsRes = await API.get("/dashboard");
       setStats(statsRes.data.data);
 
+      // Jobs with pagination
       const jobsRes = await API.get("/jobs", {
-        params: { search, status, priority },
+        params: {
+          search,
+          status,
+          priority,
+          page,
+          limit: 5,
+        },
       });
 
       setJobs(jobsRes.data.data.jobs);
+      setTotalPages(jobsRes.data.data.pagination.totalPages);
+
     } catch (err) {
       console.error(err);
     }
   };
 
+  /* =========================
+     EFFECTS
+  ========================= */
+
+  // fetch when filters OR page changes
   useEffect(() => {
     fetchData();
+  }, [search, status, priority, page]);
+
+  // reset page when filters change
+  useEffect(() => {
+    setPage(1);
   }, [search, status, priority]);
 
-  // ✅ DELETE JOB
+  /* =========================
+     DELETE JOB
+  ========================= */
+
   const deleteJob = async (id) => {
     if (!window.confirm("Delete this job?")) return;
 
@@ -52,7 +85,10 @@ function Dashboard() {
     }
   };
 
-  // ✅ UPLOAD RESUME (IMPORTANT FIX)
+  /* =========================
+     UPLOAD RESUME
+  ========================= */
+
   const uploadResume = async (id, file) => {
     if (!file) return;
 
@@ -67,22 +103,33 @@ function Dashboard() {
       });
 
       fetchData();
+
     } catch (err) {
       console.error(err);
       alert("Upload failed");
     }
   };
 
+  /* =========================
+     LOADING
+  ========================= */
+
   if (!stats) {
     return <p className="p-6">Loading...</p>;
   }
+
+  /* =========================
+     UI
+  ========================= */
 
   return (
     <Layout>
 
       <div className="p-6">
 
-        {/* Cards */}
+        {/* =========================
+            STATS
+        ========================= */}
         <div className="grid grid-cols-4 gap-4">
           <StatCard title="Total Applications" value={stats.totalApplications} />
           <StatCard title="Interviews" value={stats.interviews} />
@@ -90,11 +137,16 @@ function Dashboard() {
           <StatCard title="Rejections" value={stats.rejections} />
         </div>
 
-        {/* Chart */}
+        {/* =========================
+            CHART
+        ========================= */}
         <StatusChart data={stats.statusBreakdown} />
 
-        {/* Filters */}
+        {/* =========================
+            FILTERS
+        ========================= */}
         <div className="flex gap-4 mt-6">
+
           <input
             className="border p-2 rounded w-64"
             placeholder="Search jobs"
@@ -124,9 +176,12 @@ function Dashboard() {
             <option value="MEDIUM">Medium</option>
             <option value="HIGH">High</option>
           </select>
+
         </div>
 
-        {/* Add Job */}
+        {/* =========================
+            ADD JOB
+        ========================= */}
         <div className="flex justify-end mt-6">
           <button
             onClick={() => setShowModal(true)}
@@ -136,15 +191,46 @@ function Dashboard() {
           </button>
         </div>
 
-        {/* Job Table */}
+        {/* =========================
+            JOB TABLE
+        ========================= */}
         <JobTable
           jobs={jobs}
           onDelete={deleteJob}
           onEdit={(job) => setEditingJob(job)}
-          onUpload={uploadResume}  
+          onUpload={uploadResume}
         />
 
-        {/* Modals */}
+        {/* =========================
+            PAGINATION
+        ========================= */}
+        <div className="flex justify-center items-center gap-4 mt-6">
+
+          <button
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+            className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+          >
+            Prev
+          </button>
+
+          <span className="font-medium">
+            Page {page} of {totalPages}
+          </span>
+
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage(page + 1)}
+            className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+          >
+            Next
+          </button>
+
+        </div>
+
+        {/* =========================
+            MODALS
+        ========================= */}
         {showModal && (
           <AddJobModal
             onClose={() => setShowModal(false)}

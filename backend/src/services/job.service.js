@@ -1,5 +1,3 @@
-// backend/src/services/job.service.js
-
 import { prisma } from "../config/prisma.js";
 import ApiError from "../utils/ApiError.js";
 
@@ -30,52 +28,58 @@ const createJob = async (userId, data) => {
 };
 
 /* =========================
-   GET JOBS (FILTER + PAGINATION)
+   GET JOBS (FILTER + PAGINATION + SORT)
 ========================= */
 
 const getJobs = async (userId, query) => {
   const {
-    search,
+    search = "",
     status,
     priority,
     page = 1,
     limit = 10,
+    sortBy = "createdAt",
+    order = "desc",
   } = query;
 
-  const pageNumber = Number(page);
-  const limitNumber = Number(limit);
+  const pageNumber = Math.max(Number(page), 1);
+  const limitNumber = Math.min(Math.max(Number(limit), 1), 50); // max 50
 
   const skip = (pageNumber - 1) * limitNumber;
 
   const where = {
     userId,
     isDeleted: false,
+
+    ...(status && { status }),
+    ...(priority && { priority }),
+
+    ...(search && {
+      OR: [
+        {
+          companyName: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          roleTitle: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      ],
+    }),
   };
 
-  if (status) where.status = status;
-  if (priority) where.priority = priority;
-
-  if (search) {
-    where.OR = [
-      {
-        companyName: {
-          contains: search,
-          mode: "insensitive",
-        },
-      },
-      {
-        roleTitle: {
-          contains: search,
-          mode: "insensitive",
-        },
-      },
-    ];
-  }
+  const orderBy = {
+    [sortBy]: order === "asc" ? "asc" : "desc",
+  };
 
   const [jobs, total] = await Promise.all([
     prisma.job.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy,
       skip,
       take: limitNumber,
     }),
@@ -84,13 +88,27 @@ const getJobs = async (userId, query) => {
 
   return {
     jobs,
-    meta: {
+    pagination: {
       total,
       page: pageNumber,
       limit: limitNumber,
       totalPages: Math.ceil(total / limitNumber),
     },
   };
+};
+
+/* =========================
+   GET JOB BY ID
+========================= */
+
+const getJobById = async (userId, jobId) => {
+  return prisma.job.findFirst({
+    where: {
+      id: jobId,
+      userId,
+      isDeleted: false,
+    },
+  });
 };
 
 /* =========================
@@ -114,9 +132,11 @@ const updateJob = async (userId, jobId, data) => {
     where: { id: jobId },
     data: {
       ...data,
+
       applicationDate: data.applicationDate
         ? new Date(data.applicationDate)
         : undefined,
+
       interviewDate: data.interviewDate
         ? new Date(data.interviewDate)
         : undefined,
@@ -151,16 +171,6 @@ const deleteJob = async (userId, jobId) => {
   });
 
   return deletedJob;
-};
-
-const getJobById = async (userId, jobId) => {
-  return prisma.job.findFirst({
-    where: {
-      id: jobId,
-      userId,
-      isDeleted: false,
-    },
-  });
 };
 
 export default {
