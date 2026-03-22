@@ -82,15 +82,18 @@ model File {
 }
 
 model EmailLog {
-  id     String   @id @default(uuid())
-  userId String
-  jobId  String
-  sentAt DateTime @default(now())
-  job    Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
 
-  @@index([userId])
-  @@index([jobId])
+  userId    String
+  jobId     String
+
+  type      String   // ✅ ADD THIS
+  status    String
+
+  sentAt    DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }
 
 enum UserRole {

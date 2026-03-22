@@ -2,10 +2,12 @@ import { useState } from "react";
 import API from "../api/api";
 
 function AddJobModal({ onClose, refresh }) {
+
   const [companyName, setCompanyName] = useState("");
   const [roleTitle, setRoleTitle] = useState("");
   const [status, setStatus] = useState("APPLIED");
   const [priority, setPriority] = useState("MEDIUM");
+  const [interviewDate, setInterviewDate] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,15 +18,14 @@ function AddJobModal({ onClose, refresh }) {
         roleTitle,
         status,
         priority,
+        interviewDate: interviewDate || null,
       });
 
       refresh();
       onClose();
+
     } catch (err) {
-      alert(
-        err.response?.data?.message ||
-          "Failed to create job"
-      );
+      alert(err.response?.data?.message || "Failed to create job");
     }
   };
 
@@ -33,38 +34,36 @@ function AddJobModal({ onClose, refresh }) {
 
       <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
 
-        <h2 className="text-xl font-bold mb-4">
-          Add Job
-        </h2>
+        <h2 className="text-xl font-bold mb-4">Add Job</h2>
 
         <form onSubmit={handleSubmit}>
 
           <input
             className="border w-full p-2 mb-3 rounded"
-            placeholder="Company Name"
+            placeholder="Company"
             value={companyName}
-            onChange={(e) =>
-              setCompanyName(e.target.value)
-            }
-            required
+            onChange={(e) => setCompanyName(e.target.value)}
           />
 
           <input
             className="border w-full p-2 mb-3 rounded"
-            placeholder="Role Title"
+            placeholder="Role"
             value={roleTitle}
-            onChange={(e) =>
-              setRoleTitle(e.target.value)
-            }
-            required
+            onChange={(e) => setRoleTitle(e.target.value)}
+          />
+
+          {/* ✅ Interview Date */}
+          <input
+            type="datetime-local"
+            className="border w-full p-2 mb-3 rounded"
+            value={interviewDate}
+            onChange={(e) => setInterviewDate(e.target.value)}
           />
 
           <select
             className="border w-full p-2 mb-3 rounded"
             value={status}
-            onChange={(e) =>
-              setStatus(e.target.value)
-            }
+            onChange={(e) => setStatus(e.target.value)}
           >
             <option value="APPLIED">Applied</option>
             <option value="INTERVIEW">Interview</option>
@@ -75,31 +74,25 @@ function AddJobModal({ onClose, refresh }) {
           <select
             className="border w-full p-2 mb-3 rounded"
             value={priority}
-            onChange={(e) =>
-              setPriority(e.target.value)
-            }
+            onChange={(e) => setPriority(e.target.value)}
           >
             <option value="LOW">Low</option>
             <option value="MEDIUM">Medium</option>
             <option value="HIGH">High</option>
           </select>
 
-          <button
-            className="bg-blue-600 text-white w-full p-2 rounded"
-          >
+          <button className="bg-blue-600 text-white w-full p-2 rounded">
             Create Job
           </button>
 
         </form>
 
-        <button
-          onClick={onClose}
-          className="mt-4 text-gray-500 w-full"
-        >
+        <button onClick={onClose} className="mt-4 text-gray-500 w-full">
           Cancel
         </button>
 
       </div>
+
     </div>
   );
 }

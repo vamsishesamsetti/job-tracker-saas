@@ -1,8 +1,4 @@
-// backend/src/routes/job.routes.js
-
 import express from "express";
-import authMiddleware from "../middleware/auth.middleware.js";
-import validate from "../middleware/validate.middleware.js";
 
 import {
   createJob,
@@ -13,6 +9,10 @@ import {
   sendInterviewReminder,
 } from "../controllers/job.controller.js";
 
+import authMiddleware from "../middleware/auth.middleware.js";
+import validate from "../middleware/validate.middleware.js";
+import upload from "../middleware/upload.middleware.js";
+
 import {
   createJobSchema,
   updateJobSchema,
@@ -20,32 +20,37 @@ import {
 
 const router = express.Router();
 
-router.get("/", authMiddleware, getJobs);
+/* =========================
+   PROTECTED ROUTES
+========================= */
 
-router.post(
-  "/",
-  authMiddleware,
-  validate(createJobSchema),
-  createJob
-);
+router.use(authMiddleware);
 
-router.patch(
-  "/:id",
-  authMiddleware,
-  validate(updateJobSchema),
-  updateJob
-);
+/* =========================
+   JOB CRUD
+========================= */
 
-router.delete("/:id", authMiddleware, deleteJob);
+router.post("/", validate(createJobSchema), createJob);
 
-import upload from "../middleware/upload.middleware.js";
-import { uploadResume } from "../controllers/job.controller.js";
+router.get("/", getJobs);
+
+router.patch("/:id", validate(updateJobSchema), updateJob);
+
+router.delete("/:id", deleteJob);
+
+/* =========================
+   UPLOAD RESUME
+========================= */
 
 router.post(
   "/:id/upload",
   upload.single("file"),
   uploadResume
 );
+
+/* =========================
+   SEND EMAIL REMINDER
+========================= */
 
 router.post("/:id/send-reminder", sendInterviewReminder);
 

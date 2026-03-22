@@ -23,6 +23,7 @@ function JobTable({ jobs, onDelete, onEdit, onUpload }) {
             <th className="p-3">Actions</th>
           </tr>
         </thead>
+        
 
         <tbody>
           {jobs.map((job) => (

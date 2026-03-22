@@ -21,6 +21,10 @@ function Sidebar() {
           Dashboard
         </Link>
 
+        <Link to="/profile" className="hover:text-gray-300">
+  Profile
+</Link>
+
         <button
           onClick={logout}
           className="text-left hover:text-gray-300"
