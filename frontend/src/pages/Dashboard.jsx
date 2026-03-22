@@ -7,6 +7,7 @@ import JobTable from "../components/JobTable";
 import AddJobModal from "../components/AddJobModal";
 import EditJobModal from "../components/EditJobModal";
 import StatusChart from "../components/StatusChart";
+import toast from "react-hot-toast";
 
 function Dashboard() {
 
@@ -32,29 +33,21 @@ function Dashboard() {
   ========================= */
 
   const fetchData = async () => {
-    try {
-      // Dashboard stats
-      const statsRes = await API.get("/dashboard");
-      setStats(statsRes.data.data);
+  try {
+    const statsRes = await API.get("/dashboard");
+    setStats(statsRes.data.data);
 
-      // Jobs with pagination
-      const jobsRes = await API.get("/jobs", {
-        params: {
-          search,
-          status,
-          priority,
-          page,
-          limit: 5,
-        },
-      });
+    const jobsRes = await API.get("/jobs", {
+      params: { search, status, priority, page, limit: 5 },
+    });
 
-      setJobs(jobsRes.data.data.jobs);
-      setTotalPages(jobsRes.data.data.pagination.totalPages);
+    setJobs(jobsRes.data.data.jobs);
+    setTotalPages(jobsRes.data.data.pagination.totalPages);
 
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  } catch {
+    toast.error("Failed to load data");
+  }
+};
 
   /* =========================
      EFFECTS
@@ -74,41 +67,40 @@ function Dashboard() {
      DELETE JOB
   ========================= */
 
-  const deleteJob = async (id) => {
-    if (!window.confirm("Delete this job?")) return;
+const deleteJob = async (id) => {
+  if (!window.confirm("Delete this job?")) return;
 
-    try {
-      await API.delete(`/jobs/${id}`);
-      fetchData();
-    } catch {
-      alert("Delete failed");
-    }
-  };
+  try {
+    await API.delete(`/jobs/${id}`);
+    toast.success("Job deleted");
+    fetchData();
+  } catch {
+    toast.error("Delete failed");
+  }
+};
 
   /* =========================
      UPLOAD RESUME
   ========================= */
 
   const uploadResume = async (id, file) => {
-    if (!file) return;
+  if (!file) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-    try {
-      await API.post(`/jobs/${id}/upload`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+  try {
+    await API.post(`/jobs/${id}/upload`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
 
-      fetchData();
+    toast.success("Resume uploaded");
+    fetchData();
 
-    } catch (err) {
-      console.error(err);
-      alert("Upload failed");
-    }
-  };
+  } catch {
+    toast.error("Upload failed");
+  }
+};
 
   /* =========================
      LOADING

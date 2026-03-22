@@ -1,26 +1,33 @@
 import { useEffect, useState } from "react";
 import API from "../api/api";
 import Layout from "../components/Layout";
+import toast from "react-hot-toast";
 
 function Profile() {
+
+  /* =========================
+     STATES
+  ========================= */
 
   const [user, setUser] = useState(null);
   const [name, setName] = useState("");
 
-  // ✅ Password states
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
-  // =========================
-  // FETCH PROFILE
-  // =========================
+  const [loading, setLoading] = useState(false);
+
+  /* =========================
+     FETCH PROFILE
+  ========================= */
+
   const fetchProfile = async () => {
     try {
       const res = await API.get("/auth/me");
       setUser(res.data.data);
       setName(res.data.data.name);
     } catch (err) {
-      console.error(err);
+      toast.error("Failed to load profile");
     }
   };
 
@@ -28,50 +35,78 @@ function Profile() {
     fetchProfile();
   }, []);
 
-  // =========================
-  // UPDATE NAME
-  // =========================
+  /* =========================
+     UPDATE NAME
+  ========================= */
+
   const handleUpdate = async (e) => {
     e.preventDefault();
 
+    if (!name.trim()) {
+      return toast.error("Name cannot be empty");
+    }
+
     try {
+      setLoading(true);
+
       await API.patch("/auth/update-profile", { name });
-      alert("Profile updated");
+
+      toast.success("Profile updated");
       fetchProfile();
+
     } catch (err) {
-      alert(err.response?.data?.message || "Update failed");
+      toast.error(err.response?.data?.message || "Update failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // =========================
-  // UPDATE PASSWORD
-  // =========================
+  /* =========================
+     UPDATE PASSWORD
+  ========================= */
+
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
 
+    if (!currentPassword || !newPassword) {
+      return toast.error("All fields are required");
+    }
+
+    if (newPassword.length < 6) {
+      return toast.error("Password must be at least 6 characters");
+    }
+
     try {
+      setLoading(true);
+
       await API.patch("/auth/update-password", {
         currentPassword,
         newPassword,
       });
 
-      alert("Password updated successfully");
+      toast.success("Password updated");
 
-      // clear inputs
       setCurrentPassword("");
       setNewPassword("");
 
     } catch (err) {
-      alert(err.response?.data?.message || "Update failed");
+      toast.error(err.response?.data?.message || "Update failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // =========================
-  // LOADING STATE
-  // =========================
+  /* =========================
+     LOADING
+  ========================= */
+
   if (!user) {
     return <p className="p-6">Loading...</p>;
   }
+
+  /* =========================
+     UI
+  ========================= */
 
   return (
     <Layout>
@@ -83,7 +118,7 @@ function Profile() {
         </h1>
 
         {/* =========================
-            UPDATE NAME
+            PROFILE FORM
         ========================= */}
         <form onSubmit={handleUpdate}>
 
@@ -107,8 +142,11 @@ function Profile() {
             disabled
           />
 
-          <button className="bg-blue-600 text-white w-full p-2 rounded">
-            Update Profile
+          <button
+            disabled={loading}
+            className="bg-blue-600 text-white w-full p-2 rounded disabled:opacity-50"
+          >
+            {loading ? "Updating..." : "Update Profile"}
           </button>
 
         </form>
@@ -141,8 +179,11 @@ function Profile() {
             onChange={(e)=>setNewPassword(e.target.value)}
           />
 
-          <button className="bg-red-600 text-white w-full p-2 rounded">
-            Update Password
+          <button
+            disabled={loading}
+            className="bg-red-600 text-white w-full p-2 rounded disabled:opacity-50"
+          >
+            {loading ? "Updating..." : "Update Password"}
           </button>
 
         </form>

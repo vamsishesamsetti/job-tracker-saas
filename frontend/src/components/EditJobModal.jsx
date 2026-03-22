@@ -1,5 +1,6 @@
 import { useState } from "react";
 import API from "../api/api";
+import toast from "react-hot-toast";
 
 function EditJobModal({ job, onClose, refresh }) {
 
@@ -18,20 +19,21 @@ function EditJobModal({ job, onClose, refresh }) {
     e.preventDefault();
 
     try {
-      await API.patch(`/jobs/${job.id}`, {
-        companyName,
-        roleTitle,
-        status,
-        priority,
-        interviewDate: interviewDate || null,
-      });
+  await API.patch(`/jobs/${job.id}`, {
+    companyName,
+    roleTitle,
+    status,
+    priority,
+    interviewDate: interviewDate || null,
+  });
 
-      refresh();
-      onClose();
+  toast.success("Job updated");
+  refresh();
+  onClose();
 
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to update job");
-    }
+} catch (err) {
+  toast.error(err.response?.data?.message || "Update failed");
+}
   };
 
   return (

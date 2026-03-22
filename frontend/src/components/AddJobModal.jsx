@@ -1,5 +1,6 @@
 import { useState } from "react";
 import API from "../api/api";
+import toast from "react-hot-toast";
 
 function AddJobModal({ onClose, refresh }) {
 
@@ -13,20 +14,21 @@ function AddJobModal({ onClose, refresh }) {
     e.preventDefault();
 
     try {
-      await API.post("/jobs", {
-        companyName,
-        roleTitle,
-        status,
-        priority,
-        interviewDate: interviewDate || null,
-      });
+  await API.post("/jobs", {
+    companyName,
+    roleTitle,
+    status,
+    priority,
+    interviewDate: interviewDate || null,
+  });
 
-      refresh();
-      onClose();
+  toast.success("Job created");
+  refresh();
+  onClose();
 
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to create job");
-    }
+} catch (err) {
+  toast.error(err.response?.data?.message || "Failed to create job");
+}
   };
 
   return (
