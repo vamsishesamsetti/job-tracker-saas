@@ -4,13 +4,6 @@ import ResumePreviewModal from "./ResumePreviewModal";
 import ConfirmModal from "./ConfirmModal";
 import API from "../api/api";
 
-const statusColors = {
-  APPLIED: "bg-blue-100 text-blue-700",
-  INTERVIEW: "bg-yellow-100 text-yellow-700",
-  OFFER: "bg-green-100 text-green-700",
-  REJECTED: "bg-red-100 text-red-700",
-};
-
 const priorityColors = {
   LOW: "bg-gray-200 text-gray-700",
   MEDIUM: "bg-purple-100 text-purple-700",
@@ -23,7 +16,13 @@ function JobTable({ jobs, onEdit, refresh }) {
   const [deleteId, setDeleteId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  /* DELETE */
+  // ✅ NEW STATE
+  const [updatingId, setUpdatingId] = useState(null);
+
+  /* =========================
+     DELETE
+  ========================= */
+
   const handleDelete = async () => {
     try {
       setLoading(true);
@@ -35,12 +34,23 @@ function JobTable({ jobs, onEdit, refresh }) {
     }
   };
 
-  /* QUICK STATUS UPDATE */
+  /* =========================
+     STATUS UPDATE (IMPROVED)
+  ========================= */
+
   const updateStatus = async (id, status) => {
     try {
+      setUpdatingId(id);
+
       await API.patch(`/jobs/${id}`, { status });
+
       refresh();
-    } catch {}
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   return (
@@ -79,11 +89,12 @@ function JobTable({ jobs, onEdit, refresh }) {
 
                 <td className="p-3 text-gray-600">{job.roleTitle}</td>
 
-                {/* STATUS DROPDOWN */}
+                {/* ✅ STATUS WITH LOADING */}
                 <td className="p-3">
                   <select
                     value={job.status}
                     onChange={(e) => updateStatus(job.id, e.target.value)}
+                    disabled={updatingId === job.id}
                     className="text-xs p-1 rounded border"
                   >
                     <option value="APPLIED">Applied</option>
@@ -91,6 +102,13 @@ function JobTable({ jobs, onEdit, refresh }) {
                     <option value="OFFER">Offer</option>
                     <option value="REJECTED">Rejected</option>
                   </select>
+
+                  {/* LOADING TEXT */}
+                  {updatingId === job.id && (
+                    <div className="text-[10px] text-gray-400 mt-1">
+                      Updating...
+                    </div>
+                  )}
                 </td>
 
                 <td className="p-3">
@@ -103,7 +121,6 @@ function JobTable({ jobs, onEdit, refresh }) {
                   {job.notes || "—"}
                 </td>
 
-                {/* CREATED DATE */}
                 <td className="p-3 text-xs text-gray-400">
                   {new Date(job.createdAt).toLocaleDateString()}
                 </td>

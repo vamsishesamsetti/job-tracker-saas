@@ -77,7 +77,7 @@ function Dashboard() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, status, priority]);
+  }, [search, status, priority, sortBy, order]);
 
   /* =========================
      LOADING (SKELETON)
@@ -123,59 +123,77 @@ function Dashboard() {
         <StatusChart data={stats.statusBreakdown} />
 
         {/* FILTERS */}
-        <div className="flex gap-4 mt-6 flex-wrap">
+        <div className="flex gap-4 mt-6 flex-wrap items-center">
 
-          <input
-            className="border p-2 rounded w-64"
-            placeholder="Search jobs"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+  {/* SEARCH */}
+  <input
+    className="border p-2 rounded w-64"
+    placeholder="Search jobs"
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+  />
 
-          <select
-            className="border p-2 rounded"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="">All Status</option>
-            <option value="APPLIED">Applied</option>
-            <option value="INTERVIEW">Interview</option>
-            <option value="OFFER">Offer</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
+  {/* STATUS */}
+  <select
+    className="border p-2 rounded"
+    value={status}
+    onChange={(e) => setStatus(e.target.value)}
+  >
+    <option value="">All Status</option>
+    <option value="APPLIED">Applied</option>
+    <option value="INTERVIEW">Interview</option>
+    <option value="OFFER">Offer</option>
+    <option value="REJECTED">Rejected</option>
+  </select>
 
-          <select
-            className="border p-2 rounded"
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-          >
-            <option value="">All Priority</option>
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
-          </select>
+  {/* PRIORITY */}
+  <select
+    className="border p-2 rounded"
+    value={priority}
+    onChange={(e) => setPriority(e.target.value)}
+  >
+    <option value="">All Priority</option>
+    <option value="LOW">Low</option>
+    <option value="MEDIUM">Medium</option>
+    <option value="HIGH">High</option>
+  </select>
 
-          {/* ✅ SORTING */}
-          <select
-            className="border p-2 rounded"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="createdAt">Date</option>
-            <option value="companyName">Company</option>
-            <option value="status">Status</option>
-          </select>
+  {/* SORT */}
+  <select
+    className="border p-2 rounded"
+    value={sortBy}
+    onChange={(e) => setSortBy(e.target.value)}
+  >
+    <option value="createdAt">Date</option>
+    <option value="companyName">Company</option>
+    <option value="status">Status</option>
+  </select>
 
-          <select
-            className="border p-2 rounded"
-            value={order}
-            onChange={(e) => setOrder(e.target.value)}
-          >
-            <option value="desc">Desc</option>
-            <option value="asc">Asc</option>
-          </select>
+  <select
+    className="border p-2 rounded"
+    value={order}
+    onChange={(e) => setOrder(e.target.value)}
+  >
+    <option value="desc">Desc</option>
+    <option value="asc">Asc</option>
+  </select>
 
-        </div>
+  {/* ✅ CLEAR BUTTON */}
+  <button
+    onClick={() => {
+      setSearch("");
+      setStatus("");
+      setPriority("");
+      setSortBy("createdAt");
+      setOrder("desc");
+      setPage(1);
+    }}
+    className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+  >
+    Clear
+  </button>
+
+</div>
 
         {/* VIEW SWITCH */}
         <div className="flex justify-between mt-6">
