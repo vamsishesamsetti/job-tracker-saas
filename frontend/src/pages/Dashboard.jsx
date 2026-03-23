@@ -12,6 +12,10 @@ import toast from "react-hot-toast";
 
 function Dashboard() {
 
+  /* =========================
+     STATES
+  ========================= */
+
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -21,6 +25,9 @@ function Dashboard() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
+
+  const [sortBy, setSortBy] = useState("createdAt"); // ✅ NEW
+  const [order, setOrder] = useState("desc");        // ✅ NEW
 
   const [showModal, setShowModal] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
@@ -37,52 +44,67 @@ function Dashboard() {
       setStats(statsRes.data.data);
 
       const jobsRes = await API.get("/jobs", {
-        params: { search, status, priority, page, limit: 5 },
+        params: {
+          search,
+          status,
+          priority,
+          page,
+          limit: 5,
+          sortBy,   // ✅ NEW
+          order,    // ✅ NEW
+        },
       });
 
       setJobs(jobsRes.data.data.jobs);
       setTotalPages(jobsRes.data.data.pagination.totalPages);
 
-    } catch {
-      toast.error("Failed to load data");
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  useEffect(() => {
-  const delay = setTimeout(() => {
-    fetchData();
-  }, 500); // 500ms delay
+  /* =========================
+     DEBOUNCE
+  ========================= */
 
-  return () => clearTimeout(delay);
-}, [search, status, priority, page]);
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      fetchData();
+    }, 500);
+
+    return () => clearTimeout(delay);
+  }, [search, status, priority, page, sortBy, order]);
 
   useEffect(() => {
     setPage(1);
   }, [search, status, priority]);
 
   /* =========================
-     DELETE
-  ========================= */
-
-  const deleteJob = async (id) => {
-    if (!window.confirm("Delete this job?")) return;
-
-    try {
-      await API.delete(`/jobs/${id}`);
-      toast.success("Job deleted");
-      fetchData();
-    } catch {
-      toast.error("Delete failed");
-    }
-  };
-
-  /* =========================
-     LOADING
+     LOADING (SKELETON)
   ========================= */
 
   if (!stats) {
-    return <p className="p-6">Loading...</p>;
+    return (
+      <Layout>
+        <div className="p-6 animate-pulse">
+
+          <div className="grid grid-cols-4 gap-4">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-20 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+
+          <div className="mt-6 h-40 bg-gray-200 rounded"></div>
+          <div className="mt-6 h-60 bg-gray-200 rounded"></div>
+
+        </div>
+      </Layout>
+    );
   }
+
+  /* =========================
+     UI
+  ========================= */
 
   return (
     <Layout>
@@ -101,7 +123,7 @@ function Dashboard() {
         <StatusChart data={stats.statusBreakdown} />
 
         {/* FILTERS */}
-        <div className="flex gap-4 mt-6">
+        <div className="flex gap-4 mt-6 flex-wrap">
 
           <input
             className="border p-2 rounded w-64"
@@ -133,20 +155,39 @@ function Dashboard() {
             <option value="HIGH">High</option>
           </select>
 
+          {/* ✅ SORTING */}
+          <select
+            className="border p-2 rounded"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="createdAt">Date</option>
+            <option value="companyName">Company</option>
+            <option value="status">Status</option>
+          </select>
+
+          <select
+            className="border p-2 rounded"
+            value={order}
+            onChange={(e) => setOrder(e.target.value)}
+          >
+            <option value="desc">Desc</option>
+            <option value="asc">Asc</option>
+          </select>
+
         </div>
 
-        {/* VIEW SWITCH + ADD */}
+        {/* VIEW SWITCH */}
         <div className="flex justify-between mt-6">
 
           <div className="flex gap-2">
-
             <button
               onClick={() => setView("table")}
               className={`px-4 py-2 rounded ${
                 view === "table" ? "bg-blue-600 text-white" : "bg-gray-200"
               }`}
             >
-              Table View
+              Table
             </button>
 
             <button
@@ -155,9 +196,8 @@ function Dashboard() {
                 view === "kanban" ? "bg-blue-600 text-white" : "bg-gray-200"
               }`}
             >
-              Kanban View
+              Kanban
             </button>
-
           </div>
 
           <button
@@ -173,9 +213,8 @@ function Dashboard() {
         {view === "table" ? (
           <JobTable
             jobs={jobs}
-            onDelete={deleteJob}
             onEdit={(job) => setEditingJob(job)}
-            refresh={fetchData}  
+            refresh={fetchData}
           />
         ) : (
           <KanbanBoard jobs={jobs} refresh={fetchData} />
@@ -188,7 +227,7 @@ function Dashboard() {
             <button
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
-              className="bg-gray-300 px-4 py-2 rounded"
+              className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
             >
               Prev
             </button>
@@ -198,7 +237,7 @@ function Dashboard() {
             <button
               disabled={page === totalPages}
               onClick={() => setPage(page + 1)}
-              className="bg-gray-300 px-4 py-2 rounded"
+              className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
             >
               Next
             </button>

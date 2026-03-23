@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import API from "../api/api";
 import toast from "react-hot-toast";
 
@@ -13,9 +13,39 @@ function AddJobModal({ onClose, refresh }) {
   const [status, setStatus] = useState("APPLIED");
   const [priority, setPriority] = useState("MEDIUM");
   const [interviewDate, setInterviewDate] = useState("");
-  const [notes, setNotes] = useState(""); // ✅ NEW
+  const [notes, setNotes] = useState("");
 
   const [loading, setLoading] = useState(false);
+
+  const modalRef = useRef();
+
+  /* =========================
+     KEYBOARD UX (ESC)
+  ========================= */
+
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
+  /* =========================
+     CLICK OUTSIDE CLOSE
+  ========================= */
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (modalRef.current && !modalRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+
+    window.addEventListener("mousedown", handleClickOutside);
+    return () => window.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   /* =========================
      SUBMIT
@@ -24,9 +54,12 @@ function AddJobModal({ onClose, refresh }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ Validation
-    if (!companyName.trim() || !roleTitle.trim()) {
-      return toast.error("Company and Role are required");
+    if (!companyName.trim()) {
+      return toast.error("Company is required");
+    }
+
+    if (!roleTitle.trim()) {
+      return toast.error("Role is required");
     }
 
     try {
@@ -38,7 +71,7 @@ function AddJobModal({ onClose, refresh }) {
         status,
         priority,
         interviewDate: interviewDate || null,
-        notes: notes || null, // ✅ NEW
+        notes: notes || "", // ✅ FIXED (no null issue)
       });
 
       toast.success("Job created");
@@ -47,6 +80,7 @@ function AddJobModal({ onClose, refresh }) {
       onClose();
 
     } catch (err) {
+      console.error(err);
       toast.error(err.response?.data?.message || "Failed to create job");
     } finally {
       setLoading(false);
@@ -58,9 +92,12 @@ function AddJobModal({ onClose, refresh }) {
   ========================= */
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
 
-      <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
+      <div
+        ref={modalRef}
+        className="bg-white p-6 rounded-lg w-96 shadow-lg"
+      >
 
         <h2 className="text-xl font-bold mb-4">
           Add Job
@@ -115,7 +152,7 @@ function AddJobModal({ onClose, refresh }) {
             <option value="HIGH">High</option>
           </select>
 
-          {/* ✅ NOTES FIELD */}
+          {/* NOTES */}
           <textarea
             placeholder="Notes (optional)"
             className="border w-full p-2 mb-3 rounded"
@@ -126,6 +163,7 @@ function AddJobModal({ onClose, refresh }) {
 
           {/* SUBMIT */}
           <button
+            type="submit"
             disabled={loading}
             className="bg-blue-600 text-white w-full p-2 rounded disabled:opacity-50"
           >
