@@ -19,6 +19,6 @@ export const createJobSchema = z.object({
   applicationDate: z.string().optional(),
   interviewDate: z.string().optional(),
 
-  notes: z.string().optional(),
+  notes: z.string().optional().nullable(),
 });
 export const updateJobSchema = createJobSchema.partial();

@@ -9,6 +9,7 @@ const createJob = async (userId, data) => {
   const job = await prisma.job.create({
     data: {
       ...data,
+      notes: data.notes || "",
 
       user: {
         connect: { id: userId },

@@ -7,14 +7,10 @@ import JobTable from "../components/JobTable";
 import AddJobModal from "../components/AddJobModal";
 import EditJobModal from "../components/EditJobModal";
 import StatusChart from "../components/StatusChart";
-import toast from "react-hot-toast";
 import KanbanBoard from "../components/KanbanBoard";
+import toast from "react-hot-toast";
 
 function Dashboard() {
-
-  /* =========================
-     STATES
-  ========================= */
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -29,7 +25,7 @@ function Dashboard() {
   const [showModal, setShowModal] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
 
-  const [view, setView] = useState("table"); // ✅ NEW
+  const [view, setView] = useState("table");
 
   /* =========================
      FETCH DATA
@@ -37,7 +33,7 @@ function Dashboard() {
 
   const fetchData = async () => {
     try {
-      const statsRes = await API.get("/dashboard");
+      const statsRes = await API.get("/dashboard/summary");
       setStats(statsRes.data.data);
 
       const jobsRes = await API.get("/jobs", {
@@ -52,20 +48,20 @@ function Dashboard() {
     }
   };
 
-  /* =========================
-     EFFECTS
-  ========================= */
-
   useEffect(() => {
+  const delay = setTimeout(() => {
     fetchData();
-  }, [search, status, priority, page]);
+  }, 500); // 500ms delay
+
+  return () => clearTimeout(delay);
+}, [search, status, priority, page]);
 
   useEffect(() => {
     setPage(1);
   }, [search, status, priority]);
 
   /* =========================
-     DELETE JOB
+     DELETE
   ========================= */
 
   const deleteJob = async (id) => {
@@ -81,39 +77,12 @@ function Dashboard() {
   };
 
   /* =========================
-     UPLOAD RESUME
-  ========================= */
-
-  const uploadResume = async (id, file) => {
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      await API.post(`/jobs/${id}/upload`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      toast.success("Resume uploaded");
-      fetchData();
-
-    } catch {
-      toast.error("Upload failed");
-    }
-  };
-
-  /* =========================
      LOADING
   ========================= */
 
   if (!stats) {
     return <p className="p-6">Loading...</p>;
   }
-
-  /* =========================
-     UI
-  ========================= */
 
   return (
     <Layout>
@@ -166,18 +135,15 @@ function Dashboard() {
 
         </div>
 
-        {/* ADD JOB */}
+        {/* VIEW SWITCH + ADD */}
         <div className="flex justify-between mt-6">
 
-          {/* VIEW SWITCH */}
           <div className="flex gap-2">
 
             <button
               onClick={() => setView("table")}
               className={`px-4 py-2 rounded ${
-                view === "table"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200"
+                view === "table" ? "bg-blue-600 text-white" : "bg-gray-200"
               }`}
             >
               Table View
@@ -186,9 +152,7 @@ function Dashboard() {
             <button
               onClick={() => setView("kanban")}
               className={`px-4 py-2 rounded ${
-                view === "kanban"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200"
+                view === "kanban" ? "bg-blue-600 text-white" : "bg-gray-200"
               }`}
             >
               Kanban View
@@ -205,13 +169,13 @@ function Dashboard() {
 
         </div>
 
-        {/* TABLE OR KANBAN */}
+        {/* MAIN VIEW */}
         {view === "table" ? (
           <JobTable
             jobs={jobs}
             onDelete={deleteJob}
             onEdit={(job) => setEditingJob(job)}
-            onUpload={uploadResume}
+            refresh={fetchData}  
           />
         ) : (
           <KanbanBoard jobs={jobs} refresh={fetchData} />
@@ -219,24 +183,22 @@ function Dashboard() {
 
         {/* PAGINATION */}
         {view === "table" && (
-          <div className="flex justify-center items-center gap-4 mt-6">
+          <div className="flex justify-center mt-6 gap-4">
 
             <button
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
-              className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+              className="bg-gray-300 px-4 py-2 rounded"
             >
               Prev
             </button>
 
-            <span className="font-medium">
-              Page {page} of {totalPages}
-            </span>
+            <span>Page {page} of {totalPages}</span>
 
             <button
               disabled={page === totalPages}
               onClick={() => setPage(page + 1)}
-              className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+              className="bg-gray-300 px-4 py-2 rounded"
             >
               Next
             </button>
