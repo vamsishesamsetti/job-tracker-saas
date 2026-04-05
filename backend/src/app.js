@@ -19,13 +19,11 @@ const app = express();
 
 app.use(helmet());
 
-import cors from "cors";
-
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "job-tracker-saas-three.vercel.app", // 👈 UPDATE AFTER DEPLOY
+      "https://job-tracker-saas-three.vercel.app"
     ],
     credentials: true,
   })
