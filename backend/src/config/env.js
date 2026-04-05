@@ -9,12 +9,12 @@ const requiredEnvVars = [
 
 requiredEnvVars.forEach((key) => {
   if (!process.env[key]) {
-    throw new Error(`Missing env variable: ${key}`);
+    console.error(`❌ Missing env variable: ${key}`);
+    process.exit(1);
   }
 });
 
 export const env = {
-  port: process.env.PORT || 4000,
   nodeEnv: process.env.NODE_ENV || "development",
   databaseUrl: process.env.DATABASE_URL,
   jwtSecret: process.env.JWT_SECRET,
