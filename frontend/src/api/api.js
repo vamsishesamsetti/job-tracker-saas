@@ -2,7 +2,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 const API = axios.create({
-  baseURL: "baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'",
+  baseURL: "https://job-tracker-backend-gsf6.onrender.com",
 });
 
 /* REQUEST */
