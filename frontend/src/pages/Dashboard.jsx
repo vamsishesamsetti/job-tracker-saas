@@ -1,288 +1,215 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import API from "../api/api";
-
 import Layout from "../components/Layout";
+import { useAuth } from "../context/AuthContext";
 import StatCard from "../components/StatCard";
+import StatusChart from "../components/StatusChart";
 import JobTable from "../components/JobTable";
 import AddJobModal from "../components/AddJobModal";
 import EditJobModal from "../components/EditJobModal";
-import StatusChart from "../components/StatusChart";
-import KanbanBoard from "../components/KanbanBoard";
-import toast from "react-hot-toast";
 
-function Dashboard() {
+function useDebounce(value, delay) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
 
-  /* =========================
-     STATES
-  ========================= */
-
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-
-  const [stats, setStats] = useState(null);
+export default function Dashboard() {
   const [jobs, setJobs] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [meta, setMeta] = useState({ page: 1, totalPages: 1 });
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editJob, setEditJob] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
+  const [page, setPage] = useState(1);
 
-  const [sortBy, setSortBy] = useState("createdAt"); // ✅ NEW
-  const [order, setOrder] = useState("desc");        // ✅ NEW
+  const debouncedSearch = useDebounce(search, 400);
 
-  const [showModal, setShowModal] = useState(false);
-  const [editingJob, setEditingJob] = useState(null);
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
-  const [view, setView] = useState("table");
-
-  /* =========================
-     FETCH DATA
-  ========================= */
-
-  const fetchData = async () => {
+  const fetchJobs = useCallback(async () => {
+    setLoading(true);
     try {
-      const statsRes = await API.get("/dashboard/summary");
-      setStats(statsRes.data.data);
+      const params = { page, limit: 10 };
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (status) params.status = status;
+      if (priority) params.priority = priority;
 
-      const jobsRes = await API.get("/jobs", {
-        params: {
-          search,
-          status,
-          priority,
-          page,
-          limit: 5,
-          sortBy,   // ✅ NEW
-          order,    // ✅ NEW
-        },
-      });
+      const { data } = await API.get("/jobs", { params });
+      setJobs(data.data.jobs);
+      setMeta(data.data.meta);
+    } catch {
+      showToast("Failed to fetch jobs", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedSearch, status, priority, page]);
 
-      setJobs(jobsRes.data.data.jobs);
-      setTotalPages(jobsRes.data.data.pagination.totalPages);
+  const fetchStats = useCallback(async () => {
+    try {
+      const { data } = await API.get("/dashboard");
+      setStats(data.data);
+    } catch {
+      // silently fail — stats are non-critical
+    }
+  }, []);
 
+  useEffect(() => { fetchJobs(); }, [fetchJobs]);
+  useEffect(() => { fetchStats(); }, [fetchStats]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setPage(1); }, [debouncedSearch, status, priority]);
+
+  const handleDelete = async (id) => {
+    try {
+      await API.delete(`/jobs/${id}`);
+      showToast("Job deleted");
+      fetchJobs();
+      fetchStats();
     } catch (err) {
-      console.error(err);
+      showToast(err.response?.data?.message || "Delete failed", "error");
     }
   };
 
-  /* =========================
-     DEBOUNCE
-  ========================= */
+  const handleUpload = async (jobId, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      await API.post(`/jobs/${jobId}/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      showToast("Resume uploaded");
+      fetchJobs();
+    } catch (err) {
+      showToast(err.response?.data?.message || "Upload failed", "error");
+    }
+  };
 
-  useEffect(() => {
-    const delay = setTimeout(() => {
-      fetchData();
-    }, 500);
+  const refresh = () => { fetchJobs(); fetchStats(); };
 
-    return () => clearTimeout(delay);
-  }, [search, status, priority, page, sortBy, order]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, status, priority, sortBy, order]);
-
-  /* =========================
-     LOADING (SKELETON)
-  ========================= */
-
-  if (!stats) {
-    return (
-      <Layout>
-        <div className="p-6 animate-pulse">
-
-          <div className="grid grid-cols-4 gap-4">
-            {[1,2,3,4].map(i => (
-              <div key={i} className="h-20 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-
-          <div className="mt-6 h-40 bg-gray-200 rounded"></div>
-          <div className="mt-6 h-60 bg-gray-200 rounded"></div>
-
-        </div>
-      </Layout>
-    );
-  }
-
-  /* =========================
-     UI
-  ========================= */
+  const { user } = useAuth();
 
   return (
     <Layout>
-
-      <div className="p-6">
-
-        {/* STATS */}
-        <div className="grid grid-cols-4 gap-4">
-          <StatCard title="Total Applications" value={stats.totalApplications} />
-          <StatCard title="Interviews" value={stats.interviews} />
-          <StatCard title="Offers" value={stats.offers} />
-          <StatCard title="Rejections" value={stats.rejections} />
-        </div>
-
-        {/* CHART */}
-        <StatusChart data={stats.statusBreakdown} />
-
-        {/* FILTERS */}
-        <div className="flex gap-4 mt-6 flex-wrap items-center">
-
-  {/* SEARCH */}
-  <input
-    className="border p-2 rounded w-64"
-    placeholder="Search jobs"
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-  />
-
-  {/* STATUS */}
-  <select
-    className="border p-2 rounded"
-    value={status}
-    onChange={(e) => setStatus(e.target.value)}
-  >
-    <option value="">All Status</option>
-    <option value="APPLIED">Applied</option>
-    <option value="INTERVIEW">Interview</option>
-    <option value="OFFER">Offer</option>
-    <option value="REJECTED">Rejected</option>
-  </select>
-
-  {/* PRIORITY */}
-  <select
-    className="border p-2 rounded"
-    value={priority}
-    onChange={(e) => setPriority(e.target.value)}
-  >
-    <option value="">All Priority</option>
-    <option value="LOW">Low</option>
-    <option value="MEDIUM">Medium</option>
-    <option value="HIGH">High</option>
-  </select>
-
-  {/* SORT */}
-  <select
-    className="border p-2 rounded"
-    value={sortBy}
-    onChange={(e) => setSortBy(e.target.value)}
-  >
-    <option value="createdAt">Date</option>
-    <option value="companyName">Company</option>
-    <option value="status">Status</option>
-  </select>
-
-  <select
-    className="border p-2 rounded"
-    value={order}
-    onChange={(e) => setOrder(e.target.value)}
-  >
-    <option value="desc">Desc</option>
-    <option value="asc">Asc</option>
-  </select>
-
-  {/* ✅ CLEAR BUTTON */}
-  <button
-    onClick={() => {
-      setSearch("");
-      setStatus("");
-      setPriority("");
-      setSortBy("createdAt");
-      setOrder("desc");
-      setPage(1);
-    }}
-    className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
-  >
-    Clear
-  </button>
-
-</div>
-
-        {/* VIEW SWITCH */}
-        <div className="flex justify-between mt-6">
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => setView("table")}
-              className={`px-4 py-2 rounded ${
-                view === "table" ? "bg-blue-600 text-white" : "bg-gray-200"
-              }`}
-            >
-              Table
-            </button>
-
-            <button
-              onClick={() => setView("kanban")}
-              className={`px-4 py-2 rounded ${
-                view === "kanban" ? "bg-blue-600 text-white" : "bg-gray-200"
-              }`}
-            >
-              Kanban
-            </button>
+      <div className="p-6 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+            <p className="text-gray-500 text-sm">Welcome back, {user.name || "User"}</p>
           </div>
-
           <button
-            onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
+            onClick={() => setShowAddModal(true)}
+            className="bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 font-medium shadow-sm"
           >
             + Add Job
           </button>
-
         </div>
 
-        {/* MAIN VIEW */}
-        {view === "table" ? (
-          <JobTable
-            jobs={jobs}
-            onEdit={(job) => setEditingJob(job)}
-            refresh={fetchData}
-          />
-        ) : (
-          <KanbanBoard jobs={jobs} refresh={fetchData} />
-        )}
-
-        {/* PAGINATION */}
-        {view === "table" && (
-          <div className="flex justify-center mt-6 gap-4">
-
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-              className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
-            >
-              Prev
-            </button>
-
-            <span>Page {page} of {totalPages}</span>
-
-            <button
-              disabled={page === totalPages}
-              onClick={() => setPage(page + 1)}
-              className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
-            >
-              Next
-            </button>
-
+        {/* Stats */}
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <StatCard title="Total Applied"  value={stats.totalApplications} icon="📨" color="blue"   />
+            <StatCard title="Interviews"     value={stats.interviews}        icon="🗣️" color="yellow" />
+            <StatCard title="Offers"         value={stats.offers}            icon="🎉" color="green"  />
+            <StatCard title="Rejected"       value={stats.rejections}        icon="❌" color="red"    />
           </div>
         )}
 
-        {/* MODALS */}
-        {showModal && (
-          <AddJobModal
-            onClose={() => setShowModal(false)}
-            refresh={fetchData}
+        {/* Chart */}
+        {stats?.statusBreakdown?.length > 0 && (
+          <StatusChart data={stats.statusBreakdown} />
+        )}
+
+        {/* Filters */}
+        <div className="bg-white shadow rounded-lg p-4 mt-6 flex flex-wrap gap-3 items-center">
+          <input
+            className="border rounded-lg p-2 flex-1 min-w-48 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Search company or role..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select className="border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">All Statuses</option>
+            <option value="APPLIED">Applied</option>
+            <option value="INTERVIEW">Interview</option>
+            <option value="OFFER">Offer</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+          <select className="border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={priority} onChange={(e) => setPriority(e.target.value)}>
+            <option value="">All Priorities</option>
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+          </select>
+          {(search || status || priority) && (
+            <button onClick={() => { setSearch(""); setStatus(""); setPriority(""); }}
+              className="text-sm text-gray-500 hover:text-gray-800 underline">
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* Table */}
+        {loading ? (
+          <div className="bg-white shadow rounded-lg mt-6 p-12 text-center text-gray-400">
+            Loading...
+          </div>
+        ) : (
+          <JobTable
+            jobs={jobs}
+            onDelete={handleDelete}
+            onEdit={(job) => setEditJob(job)}
+            onUpload={handleUpload}
           />
         )}
 
-        {editingJob && (
-          <EditJobModal
-            job={editingJob}
-            onClose={() => setEditingJob(null)}
-            refresh={fetchData}
-          />
+        {/* Pagination */}
+        {meta.totalPages > 1 && (
+          <div className="flex justify-center gap-3 mt-6 items-center">
+            <button disabled={page <= 1} onClick={() => setPage(page - 1)}
+              className="px-4 py-2 border rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50">
+              ← Previous
+            </button>
+            <span className="text-sm text-gray-600">
+              Page {meta.page} of {meta.totalPages}
+            </span>
+            <button disabled={page >= meta.totalPages} onClick={() => setPage(page + 1)}
+              className="px-4 py-2 border rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50">
+              Next →
+            </button>
+          </div>
         )}
-
       </div>
 
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 px-5 py-3 rounded-lg shadow-lg text-white text-sm font-medium z-50 transition-all ${
+          toast.type === "error" ? "bg-red-500" : "bg-green-500"
+        }`}>
+          {toast.message}
+        </div>
+      )}
+
+      {showAddModal && (
+        <AddJobModal onClose={() => setShowAddModal(false)} refresh={refresh} />
+      )}
+      {editJob && (
+        <EditJobModal job={editJob} onClose={() => setEditJob(null)} refresh={refresh} />
+      )}
     </Layout>
   );
 }
-
-export default Dashboard;

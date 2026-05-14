@@ -2,6 +2,7 @@ import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import authService from "../services/auth.service.js";
 import bcrypt from "bcryptjs";
+import { prisma } from "../config/prisma.js";
 
 /* =========================
    REGISTER
@@ -50,10 +51,14 @@ export const loginUser = asyncHandler(async (req, res) => {
 });
 
 export const getMe = asyncHandler(async (req, res) => {
-  return res.status(200).json({
-    success: true,
-    data: req.user,
-  });
+  return res.status(200).json(
+    new ApiResponse(200, {
+      id: req.user.id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+    }, "Current user")
+  );
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
@@ -62,13 +67,12 @@ export const updateProfile = asyncHandler(async (req, res) => {
   const updatedUser = await prisma.user.update({
     where: { id: req.user.id },
     data: { name },
+    select: { id: true, name: true, email: true, role: true },
   });
 
-  res.status(200).json({
-    success: true,
-    data: updatedUser,
-    message: "Profile updated",
-  });
+  res.status(200).json(
+    new ApiResponse(200, updatedUser, "Profile updated")
+  );
 });
 
 export const updatePassword = asyncHandler(async (req, res) => {
@@ -80,7 +84,7 @@ export const updatePassword = asyncHandler(async (req, res) => {
   });
 
   // 2. Check current password
-  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
 
   if (!isMatch) {
     return res.status(400).json({
@@ -95,7 +99,7 @@ export const updatePassword = asyncHandler(async (req, res) => {
   // 4. Update
   await prisma.user.update({
     where: { id: req.user.id },
-    data: { password: hashedPassword },
+    data: { passwordHash: hashedPassword },
   });
 
   return res.status(200).json({
