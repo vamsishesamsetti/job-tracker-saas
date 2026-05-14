@@ -1,188 +1,146 @@
-import { useState } from "react";
-import ResumeUpload from "./ResumeUpload";
-import ResumePreviewModal from "./ResumePreviewModal";
-import ConfirmModal from "./ConfirmModal";
-import API from "../api/api";
+import { useRef, useState } from "react";
 
-const priorityColors = {
-  LOW: "bg-gray-200 text-gray-700",
-  MEDIUM: "bg-purple-100 text-purple-700",
-  HIGH: "bg-red-200 text-red-800",
+const STATUS_STYLES = {
+  APPLIED:   "bg-blue-100 text-blue-700",
+  INTERVIEW: "bg-yellow-100 text-yellow-700",
+  OFFER:     "bg-green-100 text-green-700",
+  REJECTED:  "bg-red-100 text-red-700",
 };
 
-function JobTable({ jobs, onEdit, refresh }) {
+const PRIORITY_STYLES = {
+  LOW:    "bg-gray-100 text-gray-600",
+  MEDIUM: "bg-orange-100 text-orange-700",
+  HIGH:   "bg-red-100 text-red-700",
+};
 
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [deleteId, setDeleteId] = useState(null);
-  const [loading, setLoading] = useState(false);
+function UploadCell({ job, onUpload }) {
+  const ref = useRef(null);
+  const [uploading, setUploading] = useState(false);
 
-  // ✅ NEW STATE
-  const [updatingId, setUpdatingId] = useState(null);
-
-  /* =========================
-     DELETE
-  ========================= */
-
-  const handleDelete = async () => {
-    try {
-      setLoading(true);
-      await API.delete(`/jobs/${deleteId}`);
-      setDeleteId(null);
-      refresh();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* =========================
-     STATUS UPDATE (IMPROVED)
-  ========================= */
-
-  const updateStatus = async (id, status) => {
-    try {
-      setUpdatingId(id);
-
-      await API.patch(`/jobs/${id}`, { status });
-
-      refresh();
-
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setUpdatingId(null);
-    }
+  const handleChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    await onUpload(job.id, file);
+    setUploading(false);
+    e.target.value = "";
   };
 
   return (
-    <>
-      <table className="w-full mt-6 border rounded-xl overflow-hidden">
+    <div className="flex items-center gap-2">
+      {job.resumeUrl ? (
+        <a href={job.resumeUrl} target="_blank" rel="noreferrer"
+          className="text-blue-600 underline text-sm">View</a>
+      ) : (
+        <span className="text-gray-400 text-sm">None</span>
+      )}
+      <button
+        onClick={() => ref.current?.click()}
+        disabled={uploading}
+        className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded border disabled:opacity-50"
+      >
+        {uploading ? "..." : job.resumeUrl ? "Replace" : "Upload"}
+      </button>
+      <input ref={ref} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleChange} />
+    </div>
+  );
+}
 
-        <thead className="bg-gray-100">
+function JobTable({ jobs, onDelete, onEdit, onUpload }) {
+  const [confirmId, setConfirmId] = useState(null);
+
+  if (!jobs || jobs.length === 0) {
+    return (
+      <div className="bg-white shadow rounded-lg mt-6 p-12 text-center text-gray-400">
+        <p className="text-4xl mb-3">📋</p>
+        <p className="font-medium">No jobs found</p>
+        <p className="text-sm mt-1">Add your first job application above</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white shadow rounded-lg mt-6 overflow-hidden">
+      <table className="w-full text-left text-sm">
+        <thead className="border-b bg-gray-50 text-gray-500 uppercase text-xs tracking-wider">
           <tr>
-            <th className="p-3">Company</th>
-            <th className="p-3">Role</th>
-            <th className="p-3">Status</th>
-            <th className="p-3">Priority</th>
-            <th className="p-3">Notes</th>
-            <th className="p-3">Created</th>
-            <th className="p-3">Resume</th>
-            <th className="p-3">Actions</th>
+            <th className="p-4">Company / Role</th>
+            <th className="p-4">Status</th>
+            <th className="p-4">Priority</th>
+            <th className="p-4">Salary</th>
+            <th className="p-4">Interview</th>
+            <th className="p-4">Resume</th>
+            <th className="p-4">Actions</th>
           </tr>
         </thead>
+        <tbody className="divide-y divide-gray-100">
+          {jobs.map((job) => (
+            <tr key={job.id} className="hover:bg-gray-50 transition-colors">
+              <td className="p-4">
+                <p className="font-semibold text-gray-800">{job.companyName}</p>
+                <p className="text-gray-500">{job.roleTitle}</p>
+                {job.notes && (
+                  <p className="text-gray-400 text-xs mt-1 truncate max-w-48" title={job.notes}>
+                    {job.notes}
+                  </p>
+                )}
+              </td>
 
-        <tbody>
-          {jobs.length === 0 ? (
-            <tr>
-              <td colSpan="8" className="text-center p-6 text-gray-500">
-                🚀 No jobs yet. Start applying!
+              <td className="p-4">
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLES[job.status] || ""}`}>
+                  {job.status}
+                </span>
+              </td>
+
+              <td className="p-4">
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${PRIORITY_STYLES[job.priority] || ""}`}>
+                  {job.priority}
+                </span>
+              </td>
+
+              <td className="p-4 text-gray-600">
+                {job.salaryMin || job.salaryMax
+                  ? `$${(job.salaryMin || 0).toLocaleString()} – $${(job.salaryMax || 0).toLocaleString()}`
+                  : <span className="text-gray-300">—</span>}
+              </td>
+
+              <td className="p-4 text-gray-600">
+                {job.interviewDate
+                  ? new Date(job.interviewDate).toLocaleDateString()
+                  : <span className="text-gray-300">—</span>}
+              </td>
+
+              <td className="p-4">
+                <UploadCell job={job} onUpload={onUpload} />
+              </td>
+
+              <td className="p-4">
+                {confirmId === job.id ? (
+                  <div className="flex gap-1 items-center">
+                    <span className="text-xs text-gray-500">Sure?</span>
+                    <button onClick={() => { onDelete(job.id); setConfirmId(null); }}
+                      className="text-xs bg-red-500 text-white px-2 py-1 rounded">Yes</button>
+                    <button onClick={() => setConfirmId(null)}
+                      className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">No</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button onClick={() => onEdit(job)}
+                      className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1 rounded border border-blue-200">
+                      Edit
+                    </button>
+                    <button onClick={() => setConfirmId(job.id)}
+                      className="text-xs bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1 rounded border border-red-200">
+                      Delete
+                    </button>
+                  </div>
+                )}
               </td>
             </tr>
-          ) : (
-            jobs.map((job) => (
-              <tr
-                key={job.id}
-                className={`border-b hover:bg-gray-50 ${
-                  job.priority === "HIGH" ? "bg-red-50" : ""
-                }`}
-              >
-                <td className="p-3 font-medium">{job.companyName}</td>
-
-                <td className="p-3 text-gray-600">{job.roleTitle}</td>
-
-                {/* ✅ STATUS WITH LOADING */}
-                <td className="p-3">
-                  <select
-                    value={job.status}
-                    onChange={(e) => updateStatus(job.id, e.target.value)}
-                    disabled={updatingId === job.id}
-                    className="text-xs p-1 rounded border"
-                  >
-                    <option value="APPLIED">Applied</option>
-                    <option value="INTERVIEW">Interview</option>
-                    <option value="OFFER">Offer</option>
-                    <option value="REJECTED">Rejected</option>
-                  </select>
-
-                  {/* LOADING TEXT */}
-                  {updatingId === job.id && (
-                    <div className="text-[10px] text-gray-400 mt-1">
-                      Updating...
-                    </div>
-                  )}
-                </td>
-
-                <td className="p-3">
-                  <span className={`text-xs px-2 py-1 rounded ${priorityColors[job.priority]}`}>
-                    {job.priority}
-                  </span>
-                </td>
-
-                <td className="p-3 text-sm text-gray-500 truncate max-w-[120px]">
-                  {job.notes || "—"}
-                </td>
-
-                <td className="p-3 text-xs text-gray-400">
-                  {new Date(job.createdAt).toLocaleDateString()}
-                </td>
-
-                <td className="p-3">
-                  {job.resumeUrl ? (
-                    <button
-                      onClick={() => setPreviewUrl(job.resumeUrl)}
-                      className="text-blue-600 underline text-sm"
-                    >
-                      Preview
-                    </button>
-                  ) : (
-                    "No Resume"
-                  )}
-                </td>
-
-                <td className="p-3 flex gap-2">
-
-                  <button
-                    onClick={() => onEdit(job)}
-                    className="bg-yellow-400 px-2 py-1 rounded"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => setDeleteId(job.id)}
-                    className="bg-red-500 text-white px-2 py-1 rounded"
-                  >
-                    Delete
-                  </button>
-
-                  <ResumeUpload jobId={job.id} refresh={refresh} />
-
-                </td>
-
-              </tr>
-            ))
-          )}
+          ))}
         </tbody>
-
       </table>
-
-      {/* PREVIEW */}
-      {previewUrl && (
-        <ResumePreviewModal
-          url={previewUrl}
-          onClose={() => setPreviewUrl(null)}
-        />
-      )}
-
-      {/* DELETE MODAL */}
-      {deleteId && (
-        <ConfirmModal
-          message="Are you sure you want to delete this job?"
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteId(null)}
-          loading={loading}
-        />
-      )}
-    </>
+    </div>
   );
 }
 

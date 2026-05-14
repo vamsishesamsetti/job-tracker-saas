@@ -1,3 +1,5 @@
+// backend/src/services/job.service.js
+
 import { prisma } from "../config/prisma.js";
 import ApiError from "../utils/ApiError.js";
 
@@ -6,22 +8,16 @@ import ApiError from "../utils/ApiError.js";
 ========================= */
 
 const createJob = async (userId, data) => {
+  const { applicationDate, interviewDate, ...rest } = data;
+
   const job = await prisma.job.create({
     data: {
-      ...data,
-      notes: data.notes || "",
-
-      user: {
-        connect: { id: userId },
-      },
-
-      applicationDate: data.applicationDate
-        ? new Date(data.applicationDate)
-        : new Date(),
-
-      interviewDate: data.interviewDate
-        ? new Date(data.interviewDate)
-        : undefined,
+      ...rest,
+      status: rest.status ?? "APPLIED",
+      priority: rest.priority ?? "MEDIUM",
+      user: { connect: { id: userId } },
+      applicationDate: applicationDate ? new Date(applicationDate) : new Date(),
+      interviewDate: interviewDate ? new Date(interviewDate) : undefined,
     },
   });
 
@@ -29,7 +25,7 @@ const createJob = async (userId, data) => {
 };
 
 /* =========================
-   GET JOBS (FILTER + PAGINATION + SORT)
+   GET JOBS (FILTER + PAGINATION)
 ========================= */
 
 const getJobs = async (userId, query) => {
@@ -39,12 +35,11 @@ const getJobs = async (userId, query) => {
     priority,
     page = 1,
     limit = 10,
-    sortBy = "createdAt",
-    order = "desc",
   } = query;
 
   const pageNumber = Number(page);
   const limitNumber = Number(limit);
+
   const skip = (pageNumber - 1) * limitNumber;
 
   const where = {
@@ -57,17 +52,25 @@ const getJobs = async (userId, query) => {
 
   if (search) {
     where.OR = [
-      { companyName: { contains: search, mode: "insensitive" } },
-      { roleTitle: { contains: search, mode: "insensitive" } },
+      {
+        companyName: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+      {
+        roleTitle: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
     ];
   }
 
   const [jobs, total] = await Promise.all([
     prisma.job.findMany({
       where,
-      orderBy: {
-        [sortBy]: order,
-      },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limitNumber,
     }),
@@ -76,26 +79,13 @@ const getJobs = async (userId, query) => {
 
   return {
     jobs,
-    pagination: {
+    meta: {
       total,
       page: pageNumber,
+      limit: limitNumber,
       totalPages: Math.ceil(total / limitNumber),
     },
   };
-};
-
-/* =========================
-   GET JOB BY ID
-========================= */
-
-const getJobById = async (userId, jobId) => {
-  return prisma.job.findFirst({
-    where: {
-      id: jobId,
-      userId,
-      isDeleted: false,
-    },
-  });
 };
 
 /* =========================
@@ -119,11 +109,9 @@ const updateJob = async (userId, jobId, data) => {
     where: { id: jobId },
     data: {
       ...data,
-
       applicationDate: data.applicationDate
         ? new Date(data.applicationDate)
         : undefined,
-
       interviewDate: data.interviewDate
         ? new Date(data.interviewDate)
         : undefined,
@@ -158,6 +146,16 @@ const deleteJob = async (userId, jobId) => {
   });
 
   return deletedJob;
+};
+
+const getJobById = async (userId, jobId) => {
+  return prisma.job.findFirst({
+    where: {
+      id: jobId,
+      userId,
+      isDeleted: false,
+    },
+  });
 };
 
 export default {

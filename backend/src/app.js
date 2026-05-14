@@ -2,6 +2,7 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import morgan from "morgan";
 
 import authRoutes from "./routes/auth.routes.js";
 import jobRoutes from "./routes/job.routes.js";
@@ -10,6 +11,7 @@ import dashboardRoutes from "./routes/dashboard.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 
 import errorMiddleware from "./middleware/error.middleware.js";
+import { notFoundHandler } from "./middleware/notFound.middleware.js";
 
 const app = express();
 
@@ -21,10 +23,7 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://job-tracker-saas-three.vercel.app"
-    ],
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   })
 );
@@ -36,6 +35,14 @@ const limiter = rateLimit({
 });
 
 app.use(limiter);
+
+/* =========================
+   LOGGING
+========================= */
+
+if (process.env.NODE_ENV !== "production") {
+  app.use(morgan("dev"));
+}
 
 /* =========================
    BODY PARSER
@@ -65,9 +72,10 @@ app.get("/health", (req, res) => {
 });
 
 /* =========================
-   GLOBAL ERROR HANDLER
+   404 + GLOBAL ERROR HANDLER
 ========================= */
 
+app.use(notFoundHandler);
 app.use(errorMiddleware);
 
 export default app;
